@@ -1,0 +1,8 @@
+{
+  "name": "okteto",
+  "description": "Okteto development environment skills for AI agents. Teaches agents how to deploy, develop, debug, and test in Okteto environments — both collaboratively with developers and autonomously in CI/ticket-driven workflows.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Okteto"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "okteto-plugins",
+  "description": "Official Okteto plugins for Claude Code",
+  "plugins": [
+    {
+      "name": "okteto",
+      "description": "Okteto development environment skills for AI agents",
+      "path": "."
+    }
+  ]
+}
