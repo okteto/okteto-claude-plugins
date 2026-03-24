@@ -50,7 +50,7 @@ For CI/CD or ticket-driven workflows where no developer is present, the skill te
 ## Testing locally
 
 ```
-claude --plugin-dir /path/to/okteto-claude-plugins
+claude --plugin-dir /path/to/okteto-claude-plugins/plugins/okteto
 ```
 
 ## Requirements

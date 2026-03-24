@@ -1,11 +1,13 @@
 {
   "name": "okteto-plugins",
-  "description": "Official Okteto plugins for Claude Code",
+  "owner": {
+    "name": "Okteto"
+  },
   "plugins": [
     {
       "name": "okteto",
       "description": "Okteto development environment skills for AI agents",
-      "path": "."
+      "source": "./plugins/okteto"
     }
   ]
 }
