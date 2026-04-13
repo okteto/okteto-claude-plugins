@@ -99,6 +99,7 @@ When operating without a developer in the loop, you own the full lifecycle: envi
    - Alternatively, if only one service changed, target it: `okteto build <service> && okteto deploy --wait`
 
 5. **Validate**:
+   - If `okteto.yaml` was modified, run `okteto validate` first to catch manifest errors before deploying
    - Run `okteto test <test-name>` for each test container in okteto.yaml
    - Run `okteto endpoints` and use curl or similar to smoke-test the live endpoints
    - Check `okteto logs <service> --since 5m` for errors in the changed services
@@ -157,6 +158,7 @@ Look at the `dev` section of `okteto.yaml` for each service. The `command` field
 | `okteto destroy` | User | With policy | Tear down all resources |
 | `okteto doctor` | Agent | Agent | Generate a diagnostic bundle |
 | `okteto status` | Agent | N/A | Check file sync progress |
+| `okteto validate` | Agent | Agent | Validate okteto.yaml manifest syntax |
 | `okteto context show` | Agent | Agent | Verify cluster and namespace |
 
 ## Common mistakes to avoid
