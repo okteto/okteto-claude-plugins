@@ -1,13 +1,31 @@
-# Okteto Plugin for Claude Code
+# Okteto Plugins for AI Agents
 
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
-## What's included
+Includes integrations for both **Claude Code** and **GitHub Copilot**.
 
-- **Okteto skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
-- **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+## GitHub Copilot (VS Code)
 
-## Install
+Copy [`copilot/copilot-instructions.md`](copilot/copilot-instructions.md) into your repo as `.github/copilot-instructions.md`:
+
+```
+cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md
+```
+
+GitHub Copilot reads this file automatically in VS Code agent mode. It teaches Copilot:
+
+- How to discover services from `okteto.yaml`
+- To use `okteto exec -- <command>` to run tests and diagnostics in the dev container (not `kubectl exec`)
+- That `okteto up` is interactive and must be run by the developer in their terminal
+- When to rebuild images with `okteto build` vs when file sync handles it
+
+No other setup required. Works with any project that has an `okteto.yaml`.
+
+---
+
+## Claude Code
+
+### Install
 
 Add the Okteto marketplace and install the plugin:
 
@@ -16,9 +34,14 @@ Add the Okteto marketplace and install the plugin:
 /plugin install okteto
 ```
 
-## Usage
+### What's included
 
-### Skill (automatic)
+- **Okteto skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
+- **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+
+### Usage
+
+#### Skill (automatic)
 
 The Okteto skill activates automatically when a project has an `okteto.yaml`. It teaches the agent:
 
@@ -27,7 +50,7 @@ The Okteto skill activates automatically when a project has an `okteto.yaml`. It
 - That `okteto up` is interactive and must be run by the developer, never the agent
 - How to operate in **collaborative mode** (developer in the loop) vs **autonomous mode** (ticket-driven, no human)
 
-### `/dev-setup` command
+#### `/dev-setup` command
 
 Run `/dev-setup` to have the agent walk through full environment setup:
 
@@ -37,7 +60,7 @@ Run `/dev-setup` to have the agent walk through full environment setup:
 4. Shows live endpoints (`okteto endpoints`)
 5. Guides you to start developing a specific service
 
-### Autonomous mode
+#### Autonomous mode
 
 For CI/CD or ticket-driven workflows where no developer is present, the skill teaches agents to:
 
@@ -47,13 +70,13 @@ For CI/CD or ticket-driven workflows where no developer is present, the skill te
 4. Validate with `okteto test` and endpoint smoke tests
 5. Report results back to the ticket/PR
 
-## Testing locally
+### Testing locally
 
 ```
 claude --plugin-dir /path/to/okteto-claude-plugins/plugins/okteto
 ```
 
-## Requirements
+### Requirements
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
 - [Okteto CLI](https://www.okteto.com/docs/get-started/install-okteto-cli/) installed and configured
