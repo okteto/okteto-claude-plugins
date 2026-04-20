@@ -111,7 +111,7 @@ When operating without a developer in the loop, you own the full lifecycle: envi
 
 7. **Report results**: Summarize what was changed, what tests passed, and provide the live environment URL for review. Include any relevant log output or test artifacts.
 
-8. **Clean up** (if appropriate): If the environment is ephemeral and no longer needed, note that `okteto destroy` can tear it down. Do not destroy without explicit authorization or a predefined cleanup policy.
+8. **Clean up**: Follow the rules in the [Cleanup and teardown](#cleanup-and-teardown) section below. Do not destroy without explicit authorization or a predefined cleanup policy.
 
 ### Autonomous example
 
@@ -132,6 +132,49 @@ Agent actions:
   11. Commit changes, open PR
   12. Report back to PROJ-123: changes made, tests passing, PR link, live URL
 ```
+
+---
+
+## Cleanup and teardown
+
+Tearing down an environment is as important as standing one up. Get the command right, and get the authorization right.
+
+### Pick the right command
+
+| Command | What it does | When to use |
+|---------|--------------|-------------|
+| `okteto down` | Exits dev mode for one service; restores the original deployment. **Does not destroy the environment.** | The developer is done iterating on a service but wants the environment to keep running. |
+| `okteto destroy` | Tears down every resource created by `okteto deploy` in the current namespace. **Destructive.** | The environment is no longer needed and teardown is authorized. |
+| `okteto namespace delete <name>` | Deletes an entire namespace and everything in it. **Very destructive.** | Only with explicit user instruction — never as cleanup from a task. |
+
+A common mistake is reaching for `okteto destroy` when the user only wanted to exit dev mode. If in doubt, `okteto down` is the safe choice.
+
+### Collaborative mode
+
+Do not run `okteto destroy` yourself. Surface it as a suggestion and let the developer run it:
+
+```
+You're done with this environment. To tear it down, run:
+  okteto destroy
+```
+
+`okteto down` is fine for the agent to run when the developer has clearly finished with a service.
+
+### Autonomous mode
+
+Run `okteto destroy` only when one of these is true:
+
+- The task explicitly authorizes cleanup (e.g., "destroy the environment when the PR is merged")
+- There is a predefined cleanup policy documented in the repo's `CLAUDE.md` or the ticket
+- The environment is ephemeral and owned by the pipeline (e.g., a per-run preview environment)
+
+If none of those apply, leave the environment running and note in the report that it is still up, with the command the caller would use to tear it down. It is always safer to leave a running environment than to destroy one that someone else depended on.
+
+### Never do this
+
+- Delete a namespace you did not create
+- Destroy a shared or named environment (e.g., `staging`, `dev`) without explicit instruction
+- Treat `okteto destroy` as a recovery step when something goes wrong — diagnose first
 
 ---
 

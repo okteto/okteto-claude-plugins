@@ -27,12 +27,19 @@ No other setup required. Works with any project that has an `okteto.yaml`.
 
 ### Install
 
-Add the Okteto marketplace and install the plugin:
+Run these two commands inside Claude Code:
 
 ```
 /plugin marketplace add okteto/okteto-claude-plugins
 /plugin install okteto
 ```
+
+What each command does:
+
+- `/plugin marketplace add okteto/okteto-claude-plugins` — tells Claude Code "trust this GitHub repo as a source of plugins." Claude Code reads `marketplace.json` from it. One-time registration.
+- `/plugin install okteto` — says "from the marketplaces I know about, install the plugin named `okteto`." Claude Code pulls the `plugins/okteto/` folder locally and wires up its skills and commands.
+
+After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available as a slash command whenever you want a guided environment bring-up.
 
 ### What's included
 
@@ -49,6 +56,18 @@ The Okteto skill activates automatically when a project has an `okteto.yaml`. It
 - When to use `okteto deploy`, `okteto build`, `okteto test`, `okteto exec`, and `okteto logs`
 - That `okteto up` is interactive and must be run by the developer, never the agent
 - How to operate in **collaborative mode** (developer in the loop) vs **autonomous mode** (ticket-driven, no human)
+- How to tear environments down cleanly with `okteto destroy` and when it is (and isn't) safe for an agent to do so unprompted
+
+#### Cleanup and teardown
+
+The skill covers the end of the lifecycle as well as the start. It teaches the agent:
+
+- To run `okteto destroy` to tear down all resources created by `okteto deploy`
+- To use `okteto down` (not `okteto destroy`) to exit dev mode without destroying the environment
+- To treat `okteto destroy` as a destructive action: in **collaborative mode** it asks the developer to run it; in **autonomous mode** it only runs when there is an explicit cleanup policy or authorization (e.g., an ephemeral PR environment that the pipeline owns)
+- To leave shared namespaces alone unless the task explicitly scopes cleanup to a namespace the agent owns
+
+If your team wants different defaults (for example, always destroy on autonomous run success), document that in your repo's `CLAUDE.md` and the skill will pick it up.
 
 #### `/dev-setup` command
 
