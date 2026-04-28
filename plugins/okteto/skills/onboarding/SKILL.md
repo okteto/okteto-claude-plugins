@@ -115,6 +115,40 @@ Tests: detected `go test ./...` in api, `npm test` in web
 Show this summary to the user before moving to Phase 2.
 
 ## 3. Phase 2 — Negotiate scope
+
+Before drafting, frame the choice and pick a level on the adaptive ladder.
+
+### 3.1 The framing block (always show this to the user)
+
+> *In Okteto, `deploy:` describes how to **provision** the environment (services, images, helm charts, k8s manifests). `dev:` describes how to **live-edit** a running service — file sync, the dev image, the startup command. You can use Okteto with just `dev:` if you already have a way to deploy your stack, or have Okteto handle both.*
+
+This same framing goes at the top of the generated `okteto.yaml` as a header comment.
+
+### 3.2 The adaptive ladder
+
+| Level | What it produces | Requires |
+|---|---|---|
+| **1 — dev-only** | `dev:` section only. User runs their own deploy externally. | Nothing extra. |
+| **2 — deploy + dev** | `build:` + `deploy:` + `dev:`. `okteto deploy` brings up the stack. | A Helm chart OR k8s manifests in the repo. |
+| **3 — full lifecycle** | Adds `test:` containers wired to existing test commands. | Level 2 prereqs PLUS detected tests. |
+
+### 3.3 Recommendation logic
+
+Recommend a level based on what Phase 1 found:
+
+- Helm chart found AND tests detected → recommend **Level 3**
+- Helm chart found AND no tests → recommend **Level 2**
+- k8s manifests found (no chart) → recommend **Level 2**
+- Neither chart nor k8s manifests → recommend **Level 1** (and explain why higher levels are unavailable)
+
+Then ask the user (collaborative mode) or accept the recommendation (autonomous mode):
+
+> "Based on what I found, I'd recommend Level [N]. Want to go with that, pick a different level, or have me explain the trade-offs?"
+
+### 3.4 Locking the level
+
+Once chosen, the level is **locked for the rest of the session.** Do not negotiate level mid-flight. If the draft turns out to need a different level (e.g., the chart is broken), surface that as a Phase 5 failure and re-enter Phase 2 cleanly.
+
 ## 4. Phases 3–4 — Draft and refine
 ## 5. Phase 5 — Validate (tiered)
 ## 6. Phase 6 — Handoff or PR
