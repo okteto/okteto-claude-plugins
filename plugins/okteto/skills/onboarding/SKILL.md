@@ -199,6 +199,80 @@ Common edit patterns:
 In autonomous mode, skip the ask and move directly to Phase 5. Edits will be requested via the PR review.
 
 ## 5. Phase 5 — Validate (tiered)
+
+Climb the validation ladder as far as the environment supports. Tier 1 is mandatory; Tiers 2 and 3 are opt-in.
+
+### 5.1 Tier 1 — `okteto validate` (always)
+
+Run:
+```bash
+okteto validate
+```
+
+**What it catches:** YAML syntax, schema violations, missing required fields.
+**What it does NOT catch:** wrong sync paths, missing services in `deploy:`, broken Helm refs, images that fail to build.
+
+If it fails, treat as a Phase 4 issue and fix before continuing.
+
+The skill **does not finish without Tier 1 passing.**
+
+### 5.2 Tier 2 — `okteto build` (offered if Dockerfiles or `build:` exist)
+
+Pre-check: run `okteto context show`. If it errors or returns no context, **skip Tier 2** and inform the user:
+
+> "Skipping the build check — no Okteto context. The manifest is syntactically valid but I haven't proven the Dockerfiles build."
+
+Otherwise, ask:
+
+> "I can run `okteto build` to prove every Dockerfile resolves and pushes. This takes a few minutes per service. Skip / build one service / build all?"
+
+Default to **build all**. If the user has many services (≥ 4) and is in a hurry, offer narrowing.
+
+Run:
+```bash
+okteto build
+```
+or
+```bash
+okteto build <service>
+```
+
+### 5.3 Tier 3 — `okteto deploy --wait` (offered if Tier 2 passed and user has a context)
+
+Note: there is **no `okteto deploy --dry-run`** flag. Full deploy is the only Tier 3 option.
+
+Ask:
+
+> "I can do a full deploy to verify the manifest works end-to-end. This will create resources in your namespace `<ns>`. After it succeeds, I'll show you the endpoints. You can `okteto destroy` after if you want. Proceed?"
+
+Run:
+```bash
+okteto deploy --wait
+okteto endpoints
+```
+
+**On success:** print endpoints. **Do not** run `okteto destroy` automatically — that's the user's call.
+
+### 5.4 On failure at any tier
+
+1. **Surface the raw CLI error verbatim.** Do not paraphrase.
+2. **Diagnose the likely cause** based on the manifest section involved (e.g., a Helm error → `deploy:`; a build error → `build:` or the Dockerfile).
+3. **Propose a concrete edit to the manifest.** Show the diff, not "you should change X."
+4. After the user approves the fix, **re-run only the failing tier** (not the whole ladder).
+
+### 5.5 Final summary
+
+Once the ladder is climbed (or stopped), summarize:
+
+> "✅ `okteto validate` passed
+> ✅ `okteto build` passed for all services
+> ⏭️ `okteto deploy` skipped (you opted out)
+> Next: run `/dev-setup` or invoke the `okteto` skill to deploy and start developing."
+
+If tiers were skipped due to environment (no context), say so:
+
+> "⚠️ Skipped Tiers 2 and 3 (no Okteto context). The manifest is syntactically valid but not deploy-tested."
+
 ## 6. Phase 6 — Handoff or PR
 ## 7. Operating modes
 ## 8. CLI quick reference
