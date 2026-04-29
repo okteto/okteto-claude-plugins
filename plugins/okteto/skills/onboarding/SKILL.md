@@ -331,5 +331,40 @@ EOF
 The skill **never merges** the PR. A human reviews and merges.
 
 ## 7. Operating modes
+
+### 7.1 Collaborative (default)
+
+A user is in the loop. Each phase that needs a decision asks a question. Defaults are presented but not auto-selected.
+
+### 7.2 Autonomous (opt-in)
+
+No human is expected to intervene. Inferred from context the same way the existing `okteto` skill does — for example, when invoked from a CI pipeline or a ticket-driven session.
+
+In autonomous mode:
+- **Scope level** → highest level the discovery *supports*. Level 2 requires a chart or k8s manifests; Level 3 additionally requires detected tests. With no chart and no manifests, stay at Level 1 even if tests are present.
+- **Validation tier** → Tier 1 always; Tier 2 if `okteto context show` succeeds; Tier 3 only if the trigger explicitly authorizes a deploy (label, env var, or explicit instruction).
+- **Discovery ambiguities** → pick the most conservative interpretation and note it in the PR description.
+- **Phase 6** → always opens a PR (Section 6.2), never hands off.
+
 ## 8. CLI quick reference
+
+| Command | When | Purpose |
+|---|---|---|
+| `okteto validate` | Phase 5 Tier 1 (always) | Check manifest syntax/schema |
+| `okteto context show` | Phase 5 pre-checks | Verify cluster connection before Tiers 2/3 |
+| `okteto build [<service>]` | Phase 5 Tier 2 | Prove Dockerfiles resolve and push |
+| `okteto deploy --wait` | Phase 5 Tier 3 | Full end-to-end validation |
+| `okteto endpoints` | Phase 5 Tier 3 | Print URLs after a successful deploy |
+
+**Never** run `okteto up` from this skill — it's interactive and belongs to the existing `okteto` skill / the user. **Never** run `okteto destroy` — leave that to the user.
+
 ## 9. Common mistakes to avoid
+
+- **Triggering when an `okteto.yaml` already exists.** Always do the pre-flight check from Section 1.
+- **Generating a Helm chart or k8s manifests.** This skill does not author deploy artifacts. If the user has neither chart nor manifests, recommend Level 1 and stop.
+- **Skipping the framing block.** The `dev:` vs `deploy:` framing in Section 3.1 must be shown to the user *and* written into the manifest as a header comment.
+- **Climbing the validation ladder without checking `okteto context show` first.** Tiers 2 and 3 require a working context.
+- **Paraphrasing CLI errors on validation failure.** Show the raw output; the user (or the next agent) needs to see exactly what Okteto said.
+- **Asking the user about everything.** Trust the signals from Phase 1. Only ask when discovery is genuinely ambiguous.
+- **Merging the PR in autonomous mode.** The PR is the human gate. Never merge.
+- **Recommending `okteto/samples/` templates.** Those are demos. Build the manifest from discovered facts, not templates.
