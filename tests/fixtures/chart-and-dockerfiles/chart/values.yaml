@@ -1,0 +1,4 @@
+api:
+  image: api
+web:
+  image: web
