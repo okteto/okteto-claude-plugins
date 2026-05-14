@@ -43,7 +43,8 @@ After install, open any project with an `okteto.yaml` and ask Claude for help. T
 
 ### What's included
 
-- **Okteto skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
+- **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
+- **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
 - **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
 
 ### Usage
@@ -57,6 +58,17 @@ The Okteto skill activates automatically when a project has an `okteto.yaml`. It
 - That `okteto up` is interactive and must be run by the developer, never the agent
 - How to operate in **collaborative mode** (developer in the loop) vs **autonomous mode** (ticket-driven, no human)
 - How to tear environments down cleanly with `okteto destroy` and when it is (and isn't) safe for an agent to do so unprompted
+
+#### `okteto-onboarding` skill (automatic)
+
+The `okteto-onboarding` skill activates when a repo has no `okteto.yaml` and the user wants to get the project onto Okteto. It:
+
+- Discovers services from `docker-compose.yml`, Helm charts, Kubernetes manifests, or Dockerfiles
+- Drafts an `okteto.yaml` based on what it finds
+- Validates the manifest through a tiered ladder: `okteto validate` → `okteto build` → `okteto deploy --wait`
+- Hands off to the `okteto` skill once the manifest exists
+
+Once the `okteto.yaml` is in place, normal `okteto` skill workflows (collaborative mode, autonomous mode, `/dev-setup`) take over.
 
 #### Cleanup and teardown
 
