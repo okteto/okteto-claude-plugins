@@ -18,6 +18,7 @@ GitHub Copilot reads this file automatically in VS Code agent mode. It teaches C
 - To use `okteto exec -- <command>` to run tests and diagnostics in the dev container (not `kubectl exec`)
 - That `okteto up` is interactive and must be run by the developer in their terminal
 - When to rebuild images with `okteto build` vs when file sync handles it
+- To isolate git worktrees with a namespace per worktree (`-n <ns>`)
 
 No other setup required. Works with any project that has an `okteto.yaml`.
 
@@ -57,6 +58,7 @@ The Okteto skill activates automatically when a project has an `okteto.yaml`. It
 - When to use `okteto deploy`, `okteto build`, `okteto test`, `okteto exec`, and `okteto logs`
 - That `okteto up` is interactive and must be run by the developer, never the agent
 - How to operate in **collaborative mode** (developer in the loop) vs **autonomous mode** (ticket-driven, no human)
+- How to isolate **git worktrees**: one namespace per worktree (`okteto namespace create` + `-n <ns>` on every command) so parallel branches never overwrite each other's environments
 - How to tear environments down cleanly with `okteto destroy` and when it is (and isn't) safe for an agent to do so unprompted
 
 #### `okteto-onboarding` skill (automatic)
@@ -78,6 +80,7 @@ The skill covers the end of the lifecycle as well as the start. It teaches the a
 - To use `okteto down` (not `okteto destroy`) to exit dev mode without destroying the environment
 - To treat `okteto destroy` as a destructive action: in **collaborative mode** it asks the developer to run it; in **autonomous mode** it only runs when there is an explicit cleanup policy or authorization (e.g., an ephemeral PR environment that the pipeline owns)
 - To leave shared namespaces alone unless the task explicitly scopes cleanup to a namespace the agent owns
+- That a namespace it created itself for an isolated worktree *is* the agent's to delete (`okteto destroy -n <ns>` then `okteto namespace delete <ns>`)
 
 If your team wants different defaults (for example, always destroy on autonomous run success), document that in your repo's `CLAUDE.md` and the skill will pick it up.
 

@@ -46,7 +46,27 @@ Instead, tell the developer:
 
 > Run this in your terminal: `okteto up <service>`
 
+If you are isolating a worktree, include the namespace: `okteto up <service> -n <ns>`.
+
 Once they confirm it's running, you can use `okteto exec` freely.
+
+## Worktrees and namespace isolation
+
+An Okteto **namespace** is the unit of isolation. It comes from the active Okteto context (`~/.okteto`), which is **global to the machine** — not per-directory. If you work in a **git worktree** (or any second checkout of the same repo), you share the same `okteto.yaml` as the other worktrees, so deploying into the same namespace makes them collide: the second `okteto deploy` overwrites the first, logs/endpoints get crossed, and `okteto destroy` in one wipes the other.
+
+**Give each worktree its own namespace:**
+
+1. Detect a worktree: `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`, or check `git worktree list`.
+2. Derive a name from the branch (lowercase alphanumeric and `-`, start/end alphanumeric, ≤ 63 chars):
+   ```bash
+   ns=$(git branch --show-current | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/^-*//; s/-*$//' | cut -c1-50)
+   ```
+3. Create it once: `okteto namespace create <ns>`.
+4. Pass `-n <ns>` on **every** Okteto command (`deploy`, `build`, `logs`, `endpoints`, `test`, `destroy`, and `okteto up` when you hand it to the developer).
+
+**Do not use `okteto namespace use <ns>`** to isolate worktrees — it switches the active namespace in the shared global context and races with other worktrees or agents on the same machine. The `-n` flag is per-invocation and safe under concurrency.
+
+A single primary checkout (not a worktree) can use the context's default namespace — no `-n` needed.
 
 ## Common workflows
 
@@ -128,7 +148,10 @@ Do not run `okteto destroy` unless there is an explicit cleanup policy or instru
 | `okteto doctor` | Agent | Generate a diagnostic bundle for Okteto support |
 | `okteto context show` | Agent | Verify cluster connection and active namespace |
 | `okteto validate` | Agent | Validate okteto.yaml syntax before deploying |
+| `okteto namespace create <ns>` | Agent | Create an isolated namespace for a worktree |
 | `okteto destroy` | Developer only | Tear down all resources — requires explicit instruction |
+
+Every command above accepts `-n <ns>` to target a specific namespace without changing the active context — use it to isolate a worktree (see above).
 
 ## Mistakes to avoid
 
@@ -138,3 +161,4 @@ Do not run `okteto destroy` unless there is an explicit cleanup policy or instru
 - **Using `kubectl apply` or `helm upgrade` directly**: Use `okteto deploy` so Okteto can track resources.
 - **Hardcoding service names**: Always read `okteto.yaml` to discover them.
 - **Running `okteto destroy` without being asked**: It tears down everything. Only run it if the developer explicitly asks.
+- **Sharing one namespace across worktrees**: Worktrees of the same repo share `okteto.yaml`, so they collide in a shared namespace. Give each its own namespace and pass `-n <ns>` on every command. Don't use `okteto namespace use` for this — it races across concurrent sessions.

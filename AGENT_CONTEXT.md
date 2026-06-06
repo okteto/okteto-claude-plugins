@@ -66,6 +66,17 @@ A core design principle: agents should not need hardcoded service lists or per-r
 
 This makes the plugin work across any Okteto project without maintenance.
 
+## Worktree Isolation via Namespaces
+
+A key requirement for agentic workflows: when an agent works across multiple **git worktrees** (parallel branches/features), each worktree must use its **own Okteto namespace** for complete separation of concerns. This is the concrete realization of the "agents as first-class citizens / isolated environments" insight above.
+
+Why it matters: worktrees of the same repo share the same `okteto.yaml`, so they produce the same Helm release and resource names. The Okteto namespace comes from the active context (`~/.okteto`), which is global to the machine. Without isolation, two worktrees deploy into the same namespace and collide — the second `okteto deploy` overwrites the first, logs/endpoints cross over, and `okteto destroy` in one tears down the other.
+
+The plugin teaches:
+- **One worktree = one namespace.** Derive the name from the branch (lowercase alphanumeric and `-`, ≤ 63 chars), create it with `okteto namespace create <ns>`.
+- **Pass `-n <ns>` on every command** rather than `okteto namespace use` — the flag is per-invocation and safe when multiple worktree agents run concurrently; `namespace use` mutates the shared global context and races.
+- **Self-created namespaces are the agent's to delete** at cleanup (`okteto destroy -n <ns>` then `okteto namespace delete <ns>`), unlike shared namespaces.
+
 ## CLI Commands for Docs Reference
 
 | Command | Collaborative | Autonomous | Purpose |
@@ -78,7 +89,10 @@ This makes the plugin work across any Okteto project without maintenance.
 | `okteto logs <service>` | Agent | Agent | View container logs |
 | `okteto endpoints` | Agent | Agent | List public URLs |
 | `okteto test <name>` | Agent | Agent | Run a test container from okteto.yaml |
+| `okteto namespace create <ns>` | Agent | Agent | Create an isolated namespace for a worktree |
 | `okteto destroy` | User | With policy | Tear down all resources |
+
+Every command accepts `-n <ns>` to target a namespace without changing the active context — this is the mechanism for worktree isolation (see below).
 
 ## Plugin Distribution
 
@@ -107,6 +121,7 @@ Suggested documentation areas based on customer conversations:
 5. **The `okteto up` rule** -- Why agents must never run `okteto up` and what to use instead
 6. **Testing with agents** -- How `okteto test` enables agents to validate changes against live environments
 7. **Preview environments for agents** -- How each agent gets isolated environments that don't conflict
+8. **Worktree isolation with namespaces** -- How agents working across multiple git worktrees use a namespace per worktree (`okteto namespace create` + `-n <ns>`) so parallel work never collides
 
 ## Common Pitfalls to Document
 
@@ -115,3 +130,5 @@ Suggested documentation areas based on customer conversations:
 - Agent builds Docker images locally instead of using `okteto build` (no access to Okteto Build Service)
 - Agent hardcodes service names instead of reading `okteto.yaml` (breaks portability)
 - Agent runs `okteto destroy` without authorization (destroys shared resources)
+- Agent runs multiple worktrees in one shared namespace (they overwrite each other; a `destroy` in one wipes the others) — use a namespace per worktree with `-n <ns>`
+- Agent uses `okteto namespace use` to switch namespaces for concurrent worktrees (races on the shared global context) — use the per-command `-n <ns>` flag instead
