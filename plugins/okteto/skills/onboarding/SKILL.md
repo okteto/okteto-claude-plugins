@@ -253,6 +253,13 @@ dev:
       - ./api:/usr/src/app
 ```
 
+**Compose-as-deploy caveats.** A compose file written for local development often won't deploy cleanly to a cluster as-is. Before committing to `deploy: compose:`, scan the compose file and warn the user about:
+
+- **Host-IP port bindings** (e.g. `127.0.0.1:9229:9229`) — Okteto's compose deploy rejects them (`Host IP is not allowed`). Drop the host-IP prefix (`9229:9229`).
+- **Source bind-mount volumes** (e.g. `./api:/usr/local/app`) — on a cluster these become *empty* volumes that **shadow the image's application code**, so the service crashes (`can't open file 'app.py'`). They belong in `dev.<svc>.sync`, not in a deployed compose.
+
+If the compose file leans on these dev-only constructs, surface it up front — don't discover it at deploy time. Options: point `deploy: compose:` at a deploy-specific compose file without the dev volumes/ports, or use the chart/k8s manifests for `deploy:` instead. This is why a repo with *both* compose and a chart often wants the chart for `deploy:` even though compose drives `dev:` (Section 2.5).
+
 **Example: Level 1 fragment (dev-only, single service)**
 
 ```yaml
@@ -452,6 +459,7 @@ In autonomous mode:
 - **Triggering when an `okteto.yaml` already exists.** Always do the pre-flight check from Section 1.
 - **Generating a Helm chart or k8s manifests.** This skill does not author deploy artifacts. If the user has no chart, no k8s manifests, *and* no deployable compose file, recommend Level 1 and stop. A compose file alone is enough for Level 2 via `deploy: compose:` — don't drop to Level 1 just because there's no chart.
 - **Assuming the chart drives `deploy:` when a compose file is also present.** Ask which the user wants (Section 2.5); don't silently pick the chart.
+- **Recommending `deploy: compose:` without scanning for dev-only constructs.** Host-IP port bindings and source bind-mount volumes break a cluster deploy (Section 4.1 caveats). Warn the user up front, don't surface it at deploy time.
 - **Hard-coding a dev-image version.** Read the version the repo declares (Section 2.3); only fall back to a default when none is declared, and flag the fallback.
 - **Forgetting to wire built images downstream.** A `build:` entry isn't enough on its own for Helm/k8s deploys — pass `${OKTETO_BUILD_<SERVICE>_IMAGE}` into the deploy command so the workload runs the image you just built.
 - **Skipping the framing block.** The `dev:` vs `deploy:` framing in Section 3.1 must be shown to the user *and* written into the manifest as a header comment.
