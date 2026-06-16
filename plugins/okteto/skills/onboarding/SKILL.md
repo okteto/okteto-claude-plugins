@@ -53,6 +53,17 @@ Build an internal model of the repo: services, their build contexts, ports, dev 
 
 Apply each signal to its own section of the manifest rather than treating priority order as a winner-takes-all.
 
+**Don't stop at the root compose file.** Real projects routinely ship several: a base or production compose (often at the repo root, using published `image:`s) plus one or more development composes under `docker/`, `dev/`, or named `*.dev.yml` / `compose.dev.yml`. Glob for `**/docker-compose*.y*ml` and `**/compose*.y*ml` (skip `node_modules`, vendor, and build dirs) — not just `./docker-compose.yml`. The split usually maps cleanly:
+
+- The **dev** compose — the one that **builds from source** (`build:` with `context:`/`target:`, plus source bind mounts) — drives `build:` and `dev:`.
+- A **base / production / `*.preview*`** compose can drive `deploy:`.
+
+When more than one compose file exists, **list them and ask** which describes development and which is the deploy source (Section 2.5). **Do not assume the root file is the dev blueprint** — a root compose built entirely from published images is a *run/deploy* file, and developing against a published image is meaningless.
+
+**Follow `include:` and resolve anchors.** A compose file may pull in others via `include:` (or the older `extends:`) — read those too, or you'll miss services. Parse the *resolved* YAML, not raw lines: dev composes commonly rely on anchors and `x-` extension fields (`build: *some-anchor`, `<<: *some-env`), which only make sense after expansion.
+
+**An existing Okteto-aware compose is a strong signal.** If a compose file already uses Okteto Compose extensions (`endpoints:`, `public:`) or is clearly an okteto deploy file, prefer it as the `deploy:` source and surface it to the user rather than authoring something new — the customer has already expressed how they want to deploy.
+
 ### 2.2 Compose → Okteto mapping
 
 When `docker-compose.yml` is present, map fields like this:
@@ -70,6 +81,8 @@ When `docker-compose.yml` is present, map fields like this:
 | `environment` | `dev.<name>.environment` |
 
 Ignore compose-only concepts that don't translate (`networks`, `restart`, named volumes, `extends`).
+
+**Backing services vs. dev targets.** A compose service that uses a published `image:` with no `build:` and no source in the repo (databases, caches, object stores, mail catchers, message brokers — `postgres`, `redis`, `minio`, `nats`, `mailpit`, and the like) is *infrastructure*: include it in the `deploy:` stack, but it rarely belongs in `dev:`. Reserve `dev:` for the services you actually edit — the ones that build from source in the repo. **Don't create a `dev:` entry for every compose service by default**; a repo with ten compose services often has only one or two real dev targets.
 
 ### 2.3 Dev-image picks by language manifest
 
@@ -98,6 +111,7 @@ Tag the image with the declared version, e.g. `okteto/golang:1.23` when `go.mod`
 | `pom.xml` with `spring-boot-maven-plugin` | `mvn spring-boot:run` |
 | `pyproject.toml` with FastAPI/Flask | `bash` (varies too much to default) |
 | Procfile with a `web:` line | the value of `web:` |
+| compose `entrypoint`/`command` is `sleep infinity` or `tail -f /dev/null` | `bash` — this is a **dev-container placeholder** (the container stays alive so you exec in), not a real command. Don't copy it into `dev.<svc>.command`; it's exactly the pattern Okteto's `dev:` replaces. |
 | None of the above | `bash` |
 
 ### 2.5 When discovery is ambiguous
@@ -107,6 +121,7 @@ If discovery leaves real ambiguity, **ask one targeted question at a time** rath
 - "I see Dockerfiles in `api/` and `web/` but no compose file. Should both be services?"
 - "I found a Helm chart at `chart/` and another at `infra/helm/`. Which one is the canonical deploy?"
 - "This repo has both a `docker-compose.yml` and a Helm chart. Which should drive `deploy:` — the compose file, the chart, or both? (Compose is often the dev path and the chart the prod path, but I don't want to assume.)"
+- "I see several compose files — `docker-compose.yml` at the root and `docker/docker-compose.dev.yml`. Which one describes how you *develop* (builds from source), and which should I use to *deploy* the stack?"
 - "Your `package.json` doesn't have a `scripts.dev` — what command starts your dev server?"
 
 Do **not** ask the user about everything. Only ask when a guess would be likely wrong. Trust the signals.
@@ -460,6 +475,9 @@ In autonomous mode:
 - **Generating a Helm chart or k8s manifests.** This skill does not author deploy artifacts. If the user has no chart, no k8s manifests, *and* no deployable compose file, recommend Level 1 and stop. A compose file alone is enough for Level 2 via `deploy: compose:` — don't drop to Level 1 just because there's no chart.
 - **Assuming the chart drives `deploy:` when a compose file is also present.** Ask which the user wants (Section 2.5); don't silently pick the chart.
 - **Recommending `deploy: compose:` without scanning for dev-only constructs.** Host-IP port bindings and source bind-mount volumes break a cluster deploy (Section 4.1 caveats). Warn the user up front, don't surface it at deploy time.
+- **Reading only the root `docker-compose.yml`.** Projects often keep the dev compose under `docker/` or as `*.dev.yml`, separate from a published-images root compose. Glob for all compose files and follow `include:` (Section 2.1). Building `dev:` from a published-images compose produces a useless manifest.
+- **Putting every compose service in `dev:`.** Backing services (databases, caches, object stores, brokers) are deploy-only infrastructure. `dev:` is for the services you edit (Section 2.2).
+- **Copying a `sleep infinity` entrypoint into `dev.<svc>.command`.** That's a dev-container placeholder, not a real command — use `bash` (Section 2.4).
 - **Hard-coding a dev-image version.** Read the version the repo declares (Section 2.3); only fall back to a default when none is declared, and flag the fallback.
 - **Forgetting to wire built images downstream.** A `build:` entry isn't enough on its own for Helm/k8s deploys — pass `${OKTETO_BUILD_<SERVICE>_IMAGE}` into the deploy command so the workload runs the image you just built.
 - **Skipping the framing block.** The `dev:` vs `deploy:` framing in Section 3.1 must be shown to the user *and* written into the manifest as a header comment.
