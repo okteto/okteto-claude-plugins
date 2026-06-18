@@ -274,7 +274,24 @@ dev:
 - **Host-IP port bindings** (e.g. `127.0.0.1:9229:9229`) — Okteto's compose deploy rejects them (`Host IP is not allowed`). Drop the host-IP prefix (`9229:9229`).
 - **Source bind-mount volumes** (e.g. `./api:/usr/local/app`) — on a cluster these become *empty* volumes that **shadow the image's application code**, so the service crashes (`can't open file 'app.py'`). They belong in `dev.<svc>.sync`, not in a deployed compose.
 
-If the compose file leans on these dev-only constructs, surface it up front — don't discover it at deploy time. Options: point `deploy: compose:` at a deploy-specific compose file without the dev volumes/ports, or use the chart/k8s manifests for `deploy:` instead. This is why a repo with *both* compose and a chart often wants the chart for `deploy:` even though compose drives `dev:` (Section 2.5).
+If the compose file leans on these dev-only constructs, surface it up front — don't discover it at deploy time. In preference order:
+
+1. **Generate a deploy-ready compose** — derive a `compose.okteto.yaml` from the original with the cluster-hostile parts removed, and point `deploy: compose: compose.okteto.yaml` at it. See "Generating a deploy-ready compose" below.
+2. **Reuse an existing deploy compose** — if the repo already ships one (e.g. a `*.preview*` or production compose without the dev volumes/ports), point `deploy: compose:` at that.
+3. **Use the chart/k8s manifests** for `deploy:` instead, if the repo has them. This is why a repo with *both* compose and a chart often wants the chart for `deploy:` even though compose drives `dev:` (Section 2.5).
+
+**Generating a deploy-ready compose (`compose.okteto.yaml`).** When compose is the chosen deploy source but the file carries dev-only constructs, write a *derived copy* rather than editing the user's original. This is a mechanical transform of the user's own file — not a hand-authored deploy artifact — so show it to the user as a diff against the source. Reference it explicitly: `deploy: { compose: compose.okteto.yaml }`. Apply these transforms:
+
+- **Drop host-IP port prefixes** — `127.0.0.1:9229:9229` → `9229:9229`. Debug-only ports (inspectors) can be removed entirely; they belong in `dev.<svc>.forward`.
+- **Remove source bind-mount volumes** — `./src:/app` and the like. The image already contains the code; these belong in `dev.<svc>.sync`. Keep named/data volumes (e.g. `db-data`).
+- **Replace dev-container placeholders** — a service whose `entrypoint`/`command` is `sleep infinity` won't run the app when deployed. Restore its real start command (from the Dockerfile `CMD` or a production compose), or drop the override.
+
+Two things the transform **cannot** silently fix — flag these to the user rather than pretending the result is clean:
+
+- **Host-path config/script mounts** (e.g. an init script mounted as the container's entrypoint) — removing the mount doesn't make the service work; the file has to be baked into an image. Leave it and warn.
+- Anything else service-specific the scan can't reason about.
+
+Add a header comment to `compose.okteto.yaml`: that it was derived from `<original>` by the skill, what changed, and that it's safe to edit or regenerate. **The generated file is best-effort** — still climb the Phase 5 ladder (validate → build → deploy) to confirm the stack actually comes up.
 
 **Example: Level 1 fragment (dev-only, single service)**
 
@@ -473,7 +490,7 @@ In autonomous mode:
 ## 9. Common mistakes to avoid
 
 - **Triggering when an `okteto.yaml` already exists.** Always do the pre-flight check from Section 1.
-- **Generating a Helm chart or k8s manifests.** This skill does not author deploy artifacts. If the user has no chart, no k8s manifests, *and* no deployable compose file, recommend Level 1 and stop. A compose file alone is enough for Level 2 via `deploy: compose:` — don't drop to Level 1 just because there's no chart.
+- **Generating a Helm chart or k8s manifests.** This skill does not author deploy artifacts. If the user has no chart, no k8s manifests, *and* no deployable compose file, recommend Level 1 and stop. A compose file alone is enough for Level 2 via `deploy: compose:` — don't drop to Level 1 just because there's no chart. (The one exception is a derived `compose.okteto.yaml` — a mechanical transform of the user's *own* compose, Section 4.1 — never a chart or k8s manifest written from scratch.)
 - **Assuming the chart drives `deploy:` when a compose file is also present.** Ask which the user wants (Section 2.5); don't silently pick the chart.
 - **Recommending `deploy: compose:` without scanning for dev-only constructs.** Host-IP port bindings and source bind-mount volumes break a cluster deploy (Section 4.1 caveats). Warn the user up front, don't surface it at deploy time.
 - **Reading only the root `docker-compose.yml`.** Projects often keep the dev compose under `docker/` or as `*.dev.yml`, separate from a published-images root compose. Glob for all compose files and follow `include:` (Section 2.1). Building `dev:` from a published-images compose produces a useless manifest.
