@@ -2,7 +2,7 @@
 
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
-Includes integrations for both **Claude Code** and **GitHub Copilot**.
+Includes integrations for **Claude Code**, **GitHub Copilot**, and **Cursor and any other agent that reads `AGENTS.md`** (Codex, Gemini CLI, and more).
 
 ## GitHub Copilot (VS Code)
 
@@ -19,6 +19,30 @@ GitHub Copilot reads this file automatically in VS Code agent mode. It teaches C
 - That `okteto up` is interactive and must be run by the developer in their terminal
 - When to rebuild images with `okteto build` vs when file sync handles it
 - To isolate git worktrees with a namespace per worktree (`-n <ns>`)
+
+No other setup required. Works with any project that has an `okteto.yaml`.
+
+---
+
+## Cursor and other agents (`AGENTS.md`)
+
+[`AGENTS.md`](https://agents.md) is a cross-tool standard for agent instructions, read by **Cursor**, **OpenAI Codex**, **Gemini CLI**, and a growing list of others.
+
+Copy [`agents/AGENTS.md`](agents/AGENTS.md) into your repo root:
+
+```
+cp agents/AGENTS.md <your-repo>/AGENTS.md
+```
+
+That one file teaches any supporting agent the same things the Copilot integration does:
+
+- How to discover services from `okteto.yaml`
+- To use `okteto exec -- <command>` to run tests and diagnostics in the dev container (not `kubectl exec`)
+- That `okteto up` is interactive and must be run by the developer in their terminal
+- When to rebuild images with `okteto build` vs when file sync handles it
+- To isolate git worktrees with a namespace per worktree (`-n <ns>`)
+
+**Cursor users** can alternatively place the same content at `.cursor/rules/okteto.mdc` for Cursor-native rule scoping, but `AGENTS.md` at the repo root is the simplest path and works across tools.
 
 No other setup required. Works with any project that has an `okteto.yaml`.
 
