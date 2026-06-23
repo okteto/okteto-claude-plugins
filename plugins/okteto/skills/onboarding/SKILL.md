@@ -7,6 +7,7 @@ description: |
   okteto.yaml; and validates it through a tiered ladder (validate → build → deploy).
   Hands off to the existing `okteto` skill once the manifest exists. Do NOT trigger
   if okteto.yaml already exists.
+license: Apache-2.0
 ---
 
 # Okteto Onboarding Skill
