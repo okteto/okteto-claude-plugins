@@ -5,6 +5,7 @@ description: |
   patterns, and debugging strategies for working with Okteto environments.
   Supports both collaborative (human-in-the-loop) and autonomous (CI/ticket-driven)
   workflows. Use when a project has an okteto.yaml or the user mentions Okteto.
+license: Apache-2.0
 ---
 
 # Okteto Development Environment Skill
