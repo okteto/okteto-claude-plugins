@@ -1,0 +1,26 @@
+name: sync-check
+
+# Ensures the shared Okteto instructions stay byte-identical across the
+# per-tool copies. The Copilot integration (copilot/copilot-instructions.md)
+# and the AGENTS.md integration (agents/AGENTS.md) ship the same tool-neutral
+# guidance to different destinations, so they must not drift.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  instructions-in-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: copilot-instructions.md and agents/AGENTS.md must match
+        run: |
+          if ! diff -u copilot/copilot-instructions.md agents/AGENTS.md; then
+            echo "::error::copilot/copilot-instructions.md and agents/AGENTS.md have diverged."
+            echo "These files must stay identical. Edit one, then copy it to the other:"
+            echo "  cp copilot/copilot-instructions.md agents/AGENTS.md"
+            exit 1
+          fi
+          echo "Instruction files are in sync."

@@ -2,31 +2,22 @@
 
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
-Includes integrations for both **Claude Code** and **GitHub Copilot**.
+Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Gemini CLI**, and [many more](https://agentskills.io/clients).
 
-## GitHub Copilot (VS Code)
+## Install
 
-Copy [`copilot/copilot-instructions.md`](copilot/copilot-instructions.md) into your repo as `.github/copilot-instructions.md`:
+Pick the row for your agent. Every method teaches the agent the same Okteto workflows — they differ only in packaging.
 
-```
-cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md
-```
+| Your agent | Install | You get |
+|---|---|---|
+| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | Both skills **+ the `/dev-setup` command** |
+| **Cursor, Codex, Copilot, Gemini CLI, [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | Both skills, installed into your agent |
+| **Anything that reads `AGENTS.md`** | `cp agents/AGENTS.md <your-repo>/AGENTS.md` | One always-on instruction file |
+| **GitHub Copilot (file-based)** | `cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md` | One always-on instruction file |
 
-GitHub Copilot reads this file automatically in VS Code agent mode. It teaches Copilot:
+Requires the [Okteto CLI](https://www.okteto.com/docs/get-started/install-okteto-cli/) installed and configured, and an `okteto.yaml` in your project.
 
-- How to discover services from `okteto.yaml`
-- To use `okteto exec -- <command>` to run tests and diagnostics in the dev container (not `kubectl exec`)
-- That `okteto up` is interactive and must be run by the developer in their terminal
-- When to rebuild images with `okteto build` vs when file sync handles it
-- To isolate git worktrees with a namespace per worktree (`-n <ns>`)
-
-No other setup required. Works with any project that has an `okteto.yaml`.
-
----
-
-## Claude Code
-
-### Install
+### Claude Code (native plugin)
 
 Run these two commands inside Claude Code:
 
@@ -35,22 +26,49 @@ Run these two commands inside Claude Code:
 /plugin install okteto
 ```
 
-What each command does:
+- `/plugin marketplace add okteto/okteto-claude-plugins` — tells Claude Code to trust this GitHub repo as a source of plugins. One-time registration.
+- `/plugin install okteto` — installs the `okteto` plugin, wiring up its skills **and** the `/dev-setup` slash command.
 
-- `/plugin marketplace add okteto/okteto-claude-plugins` — tells Claude Code "trust this GitHub repo as a source of plugins." Claude Code reads `marketplace.json` from it. One-time registration.
-- `/plugin install okteto` — says "from the marketplaces I know about, install the plugin named `okteto`." Claude Code pulls the `plugins/okteto/` folder locally and wires up its skills and commands.
+After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available whenever you want a guided environment bring-up. This is the only method that includes the `/dev-setup` command.
 
-After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available as a slash command whenever you want a guided environment bring-up.
+### Cursor, Codex, and other skills-compatible agents (`npx skills`)
 
-### What's included
+The [`skills`](https://github.com/vercel-labs/skills) CLI installs the skills into whichever agent you run it from — no Okteto-specific config required:
+
+```
+npx skills add okteto/okteto-claude-plugins
+```
+
+It auto-detects your agent (Cursor, Codex, Copilot, Gemini CLI, and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
+
+- `--skill '*' -y` — install both skills into the detected agent without prompting
+- `--copy` — copy the skill files in instead of symlinking them
+- `npx skills use okteto/okteto-claude-plugins@okteto` — print a skill as a one-off prompt without installing it
+
+Avoid `--all` — it installs into *every* known agent's directory, not just yours.
+
+This carries the **skills only** — the `/dev-setup` slash command is exclusive to the Claude Code plugin above.
+
+### File-based fallback (`AGENTS.md` / Copilot)
+
+If your agent reads a plain instruction file, copy one in — zero dependency on any installer:
+
+```
+cp agents/AGENTS.md <your-repo>/AGENTS.md                                  # AGENTS.md-aware agents
+cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md   # GitHub Copilot
+```
+
+Both files carry the same tool-neutral Okteto guidance: discovering services from `okteto.yaml`, using `okteto exec` (not `kubectl exec`), treating `okteto up` as developer-only, when to `okteto build` vs. rely on sync, and isolating worktrees with `-n <ns>`. **Cursor** users can alternatively drop the same content at `.cursor/rules/okteto.mdc` for native rule scoping. Unlike the skills methods, these load the full instructions on every turn rather than on demand.
+
+## What's included
 
 - **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
 - **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
 - **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
 
-### Usage
+## Usage
 
-#### Skill (automatic)
+### Skill (automatic)
 
 The Okteto skill activates automatically when a project has an `okteto.yaml`. It teaches the agent:
 
@@ -61,7 +79,7 @@ The Okteto skill activates automatically when a project has an `okteto.yaml`. It
 - How to isolate **git worktrees**: one namespace per worktree (`okteto namespace create` + `-n <ns>` on every command) so parallel branches never overwrite each other's environments
 - How to tear environments down cleanly with `okteto destroy` and when it is (and isn't) safe for an agent to do so unprompted
 
-#### `okteto-onboarding` skill (automatic)
+### `okteto-onboarding` skill (automatic)
 
 The `okteto-onboarding` skill activates when a repo has no `okteto.yaml` and the user wants to get the project onto Okteto. It:
 
@@ -72,7 +90,7 @@ The `okteto-onboarding` skill activates when a repo has no `okteto.yaml` and the
 
 Once the `okteto.yaml` is in place, normal `okteto` skill workflows (collaborative mode, autonomous mode, `/dev-setup`) take over.
 
-#### Cleanup and teardown
+### Cleanup and teardown
 
 The skill covers the end of the lifecycle as well as the start. It teaches the agent:
 
@@ -84,7 +102,7 @@ The skill covers the end of the lifecycle as well as the start. It teaches the a
 
 If your team wants different defaults (for example, always destroy on autonomous run success), document that in your repo's `CLAUDE.md` and the skill will pick it up.
 
-#### `/dev-setup` command
+### `/dev-setup` command (Claude Code only)
 
 Run `/dev-setup` to have the agent walk through full environment setup:
 
@@ -94,7 +112,7 @@ Run `/dev-setup` to have the agent walk through full environment setup:
 4. Shows live endpoints (`okteto endpoints`)
 5. Guides you to start developing a specific service
 
-#### Autonomous mode
+### Autonomous mode
 
 For CI/CD or ticket-driven workflows where no developer is present, the skill teaches agents to:
 
@@ -104,14 +122,14 @@ For CI/CD or ticket-driven workflows where no developer is present, the skill te
 4. Validate with `okteto test` and endpoint smoke tests
 5. Report results back to the ticket/PR
 
-### Testing locally
+## Testing the plugin locally
 
 ```
 claude --plugin-dir /path/to/okteto-claude-plugins/plugins/okteto
 ```
 
-### Requirements
+## Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI
 - [Okteto CLI](https://www.okteto.com/docs/get-started/install-okteto-cli/) installed and configured
-- An `okteto.yaml` in your project root
+- An `okteto.yaml` in your project root (use the `okteto-onboarding` skill if you don't have one yet)
+- A skills-compatible agent — see the [Install](#install) table
