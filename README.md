@@ -39,11 +39,13 @@ The [`skills`](https://github.com/vercel-labs/skills) CLI installs the skills in
 npx skills add okteto/okteto-claude-plugins
 ```
 
-It auto-detects your agent (Cursor, Codex, Copilot, Gemini CLI, and [others](https://agentskills.io/clients)), then installs both the `okteto` and `okteto-onboarding` skills. Useful flags:
+It auto-detects your agent (Cursor, Codex, Copilot, Gemini CLI, and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
 
-- `--all` — install both skills without prompting
-- `--copy` — copy files instead of symlinking
-- `npx skills use okteto/okteto-claude-plugins@okteto` — print the skill as a one-off prompt without installing
+- `--skill '*' -y` — install both skills into the detected agent without prompting
+- `--copy` — copy the skill files in instead of symlinking them
+- `npx skills use okteto/okteto-claude-plugins@okteto` — print a skill as a one-off prompt without installing it
+
+Avoid `--all` — it installs into *every* known agent's directory, not just yours.
 
 This carries the **skills only** — the `/dev-setup` slash command is exclusive to the Claude Code plugin above.
 
