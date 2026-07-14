@@ -10,8 +10,8 @@ Pick the row for your agent. Every method teaches the agent the same Okteto work
 
 | Your agent | Install | You get |
 |---|---|---|
-| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | Both skills **+ the `/dev-setup` command** |
-| **Cursor, Codex, Copilot, Gemini CLI, [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | Both skills, installed into your agent |
+| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | All three skills **+ the `/dev-setup` command** |
+| **Cursor, Codex, Copilot, Gemini CLI, [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All three skills, installed into your agent |
 | **Anything that reads `AGENTS.md`** | `cp agents/AGENTS.md <your-repo>/AGENTS.md` | One always-on instruction file |
 | **GitHub Copilot (file-based)** | `cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md` | One always-on instruction file |
 
@@ -41,7 +41,7 @@ npx skills add okteto/okteto-claude-plugins
 
 It auto-detects your agent (Cursor, Codex, Copilot, Gemini CLI, and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
 
-- `--skill '*' -y` — install both skills into the detected agent without prompting
+- `--skill '*' -y` — install all skills into the detected agent without prompting
 - `--copy` — copy the skill files in instead of symlinking them
 - `npx skills use okteto/okteto-claude-plugins@okteto` — print a skill as a one-off prompt without installing it
 
@@ -64,6 +64,7 @@ Both files carry the same tool-neutral Okteto guidance: discovering services fro
 
 - **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
 - **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
+- **`okteto-preview` skill** -- Preview environments for branches and pull requests: deploying with `okteto preview deploy`, capturing endpoints and posting the URL back to the PR or thread, mapping the flow to CI (`okteto/deploy-preview` GitHub Action, GitLab CI/CD), and teardown rules
 - **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
 
 ## Usage
@@ -89,6 +90,16 @@ The `okteto-onboarding` skill activates when a repo has no `okteto.yaml` and the
 - Hands off to the `okteto` skill once the manifest exists
 
 Once the `okteto.yaml` is in place, normal `okteto` skill workflows (collaborative mode, autonomous mode, `/dev-setup`) take over.
+
+### `okteto-preview` skill (automatic)
+
+The `okteto-preview` skill activates when someone wants a live, shareable environment for a branch or pull request. It teaches the agent:
+
+- When a task needs a **preview environment** (a shareable URL for reviewers, deployed from a pushed branch) vs. a **namespace dev environment** (the agent's own workbench, deployed from the working tree)
+- How to deploy a preview for a branch or PR with `okteto preview deploy`, including scope (`personal` vs `global`), variables, and naming conventions that keep redeploys and cleanup idempotent
+- How to capture endpoints (`okteto preview endpoints -o md`) and post the preview URL back to the PR (`gh pr comment`) or thread
+- How the same flow runs in CI with the `okteto/deploy-preview` and `okteto/destroy-preview` GitHub Actions (or GitLab CI/CD jobs)
+- Teardown rules matching the `okteto` skill's cleanup doctrine: previews the agent created are its to destroy; CI-owned and shared/global previews are not
 
 ### Cleanup and teardown
 
