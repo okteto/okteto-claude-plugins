@@ -106,7 +106,10 @@ Users install with:
 
 Contents:
 - `skills/okteto/SKILL.md` -- Main skill covering both operating modes
+- `skills/onboarding/SKILL.md` -- Onboarding skill for repos with no `okteto.yaml` yet
+- `skills/debugging/SKILL.md` -- Environment triage skill with a playbook per pod failure mode
 - `commands/dev-setup.md` -- `/dev-setup` slash command for environment setup
+- `commands/debug-env.md` -- `/debug-env` slash command for a read-only environment health sweep
 - `.claude-plugin/plugin.json` -- Plugin metadata
 - `.claude-plugin/marketplace.json` -- Marketplace manifest
 
@@ -126,7 +129,7 @@ Suggested documentation areas based on customer conversations:
 ## Common Pitfalls to Document
 
 - Agent tries to run `okteto up` (it hangs -- it's interactive)
-- Agent uses kubectl/helm directly instead of `okteto deploy` (Okteto loses track of resources)
+- Agent mutates the cluster with kubectl/helm (`apply`, `edit`, `delete`, `helm upgrade`) instead of `okteto deploy` (Okteto loses track of resources) — read-only kubectl/helm for diagnostics is fine
 - Agent builds Docker images locally instead of using `okteto build` (no access to Okteto Build Service)
 - Agent hardcodes service names instead of reading `okteto.yaml` (breaks portability)
 - Agent runs `okteto destroy` without authorization (destroys shared resources)
