@@ -1,5 +1,8 @@
 # Okteto Plugins for AI Agents
 
+> [!WARNING]
+> **Experimental (alpha).** This is a best-effort experiment maintained by Okteto Product, not a supported product feature — it has not been through Okteto's standard production release process and is not covered by support SLAs. Report problems via [GitHub issues](https://github.com/okteto/okteto-claude-plugins/issues).
+
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
 Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Gemini CLI**, and [many more](https://agentskills.io/clients).
@@ -29,7 +32,17 @@ Run these two commands inside Claude Code:
 - `/plugin marketplace add okteto/okteto-claude-plugins` — tells Claude Code to trust this GitHub repo as a source of plugins. One-time registration.
 - `/plugin install okteto` — installs the `okteto` plugin, wiring up its skills **and** the `/dev-setup` slash command.
 
-After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available whenever you want a guided environment bring-up. This is the only method that includes the `/dev-setup` command.
+After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available whenever you want a guided environment bring-up. This is the only method that includes the `/dev-setup` command and the guardrail hooks below.
+
+#### Guardrail hooks (Claude Code only)
+
+The plugin ships hooks that enforce the skill's two hardest rules mechanically, so a session can't wedge even if the model forgets them:
+
+- **`okteto up` is always denied** with a message telling the agent to hand the command to you — it's interactive and would hang the agent's shell.
+- **`okteto destroy` and `okteto namespace delete` require confirmation.** You approve them per-invocation. Pipelines that own their environments (e.g. per-PR preview environments) can pre-authorize teardown by setting `OKTETO_ALLOW_AGENT_DESTROY=1` — this is the mechanical form of the skill's "explicit cleanup policy" rule.
+- **Sessions in Okteto projects start informed.** A `SessionStart` hook detects `okteto.yaml` at the repo root and injects a one-line reminder, making skill activation deterministic instead of description-matching luck.
+
+The hooks fail open: if their input can't be parsed they allow the command, so they can only ever tighten `okteto` invocations, never break your session. They require a POSIX shell (macOS/Linux/WSL).
 
 ### Cursor, Codex, and other skills-compatible agents (`npx skills`)
 
@@ -64,7 +77,8 @@ Both files carry the same tool-neutral Okteto guidance: discovering services fro
 
 - **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
 - **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
-- **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+- **`/dev-setup` command** (Claude Code only) -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+- **Guardrail hooks** (Claude Code only) -- Deterministically block `okteto up` (it would hang the agent), require confirmation for `okteto destroy`/`okteto namespace delete`, and announce Okteto projects at session start
 
 ## Usage
 
