@@ -136,11 +136,52 @@ For CI/CD or ticket-driven workflows where no developer is present, the skill te
 4. Validate with `okteto test` and endpoint smoke tests
 5. Report results back to the ticket/PR
 
-## Testing the plugin locally
+## Testing the plugin
+
+For interactive poking, load the plugin into a session:
 
 ```
 claude --plugin-dir /path/to/okteto-claude-plugins/plugins/okteto
 ```
+
+For repeatable checks there is a scripted eval harness. It runs headless
+Claude Code sessions against the repos in `tests/fixtures/` with the plugin
+loaded, and asserts on the stream-json transcript (tool calls, hook denials)
+and on a fake `okteto` CLI (`tests/bin/okteto`) that logs every invocation and
+returns canned output — no live cluster needed.
+
+```
+tests/run-evals.sh                 # everything (agent layer skips without auth)
+tests/run-evals.sh --layer hooks   # hook-script unit tests: bash + jq only
+tests/run-evals.sh --layer wiring  # in-harness guard checks: no API key needed
+tests/run-evals.sh --layer agent   # live model evals: needs claude auth
+```
+
+The three layers, cheapest first:
+
+| Layer | What it proves | Needs |
+|---|---|---|
+| `hooks` | `guard-okteto.sh` denies `okteto up`, escalates `okteto destroy`/`namespace delete` to *ask*, honors `OKTETO_ALLOW_AGENT_DESTROY=1`, fails open on bad input; `session-start.sh` announces the manifest | bash, jq |
+| `wiring` | The same guarantees hold *inside a real headless session*: a mock Messages API (`tests/mock-model/server.py`) force-feeds scripted tool calls, so the PreToolUse deny, the headless ask→block behavior, and the shim round-trip are verified deterministically | + claude, python3 |
+| `agent` | A live model given realistic prompts follows the skills: never executes `okteto up`, refuses to onboard over an existing `okteto.yaml`, isolates git worktrees with `okteto namespace create` + `-n` flags, and never destroys without authorization | + claude auth |
+
+For the agent layer, set `ANTHROPIC_API_KEY` or be logged in (`claude login`);
+the harness probes auth first and skips with a notice if neither works.
+`CLAUDE_EVAL_MODEL` overrides the model (default `claude-sonnet-5`), and
+`--scenario <name>` runs a single agent scenario. Transcripts, shim logs, and
+mock-server logs land in a temp dir printed at the end of every run.
+
+The agent layer judges *behavior*: a scenario can legitimately be stopped at
+the skill layer (the model never tries the forbidden command) or at the hook
+layer (the guard denies it). Both count as the guardrail holding; the output
+notes which layer fired. Live-model runs are inherently somewhat
+nondeterministic — if a behavioral scenario fails, read the transcript in the
+artifacts dir before blaming the plugin.
+
+In CI, `.github/workflows/evals.yml` runs the `hooks` and `wiring` layers on
+every pull request (they need no secrets) and the `agent` layer only when the
+`ANTHROPIC_API_KEY` repository secret is configured, skipping it gracefully
+otherwise.
 
 ## Requirements
 
