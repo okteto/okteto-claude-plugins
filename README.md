@@ -122,6 +122,8 @@ For CI/CD or ticket-driven workflows where no developer is present, the skill te
 4. Validate with `okteto test` and endpoint smoke tests
 5. Report results back to the ticket/PR
 
+A complete, copy-pasteable GitHub Actions implementation of this flow — issue labeled `agent` → isolated namespace → implement → test → PR with the preview URL → teardown on PR close — lives at [examples/ticket-to-pr.yml](examples/ticket-to-pr.yml), with a full walkthrough (required secrets, teardown policy, security notes) in [examples/README.md](examples/README.md).
+
 ## Testing the plugin locally
 
 ```
