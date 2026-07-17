@@ -2,7 +2,7 @@
 
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
-Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Gemini CLI**, and [many more](https://agentskills.io/clients).
+Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Antigravity CLI (formerly Gemini CLI)**, and [many more](https://agentskills.io/clients).
 
 ## Install
 
@@ -11,7 +11,7 @@ Pick the row for your agent. Every method teaches the agent the same Okteto work
 | Your agent | Install | You get |
 |---|---|---|
 | **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | Both skills **+ the `/dev-setup` command** |
-| **Cursor, Codex, Copilot, Gemini CLI, [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | Both skills, installed into your agent |
+| **Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | Both skills, installed into your agent |
 | **Anything that reads `AGENTS.md`** | `cp agents/AGENTS.md <your-repo>/AGENTS.md` | One always-on instruction file |
 | **GitHub Copilot (file-based)** | `cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md` | One always-on instruction file |
 
@@ -39,7 +39,7 @@ The [`skills`](https://github.com/vercel-labs/skills) CLI installs the skills in
 npx skills add okteto/okteto-claude-plugins
 ```
 
-It auto-detects your agent (Cursor, Codex, Copilot, Gemini CLI, and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
+It auto-detects your agent (Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
 
 - `--skill '*' -y` — install both skills into the detected agent without prompting
 - `--copy` — copy the skill files in instead of symlinking them
