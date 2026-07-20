@@ -1,12 +1,11 @@
 ---
 name: okteto-onboarding
 description: |
-  Onboards a new repo onto Okteto. Use when a project has NO okteto.yaml/okteto.yml
-  and the user mentions Okteto, dev environments, or onboarding. Discovers services
-  from docker-compose, Helm charts, k8s manifests, or Dockerfiles; drafts an
-  okteto.yaml; and validates it through a tiered ladder (validate → build → deploy).
-  Hands off to the existing `okteto` skill once the manifest exists. Do NOT trigger
-  if okteto.yaml already exists.
+  Use when a project has NO okteto.yaml/okteto.yml and the user wants it on
+  Okteto — e.g. "get this repo onto Okteto", "set up a dev environment for
+  this", "create an Okteto manifest", "onboard this service". Also use when
+  okteto deploy fails because no manifest exists. Do NOT use if okteto.yaml
+  or okteto.yml already exists — that is the okteto skill's domain.
 license: Apache-2.0
 ---
 
