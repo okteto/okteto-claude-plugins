@@ -40,7 +40,7 @@ The plugin ships hooks that enforce the skill's two hardest rules mechanically, 
 
 - **`okteto up` is always denied** with a message telling the agent to hand the command to you — it's interactive and would hang the agent's shell.
 - **`okteto destroy` and `okteto namespace delete` require confirmation.** You approve them per-invocation. Pipelines that own their environments (e.g. per-PR preview environments) can pre-authorize teardown by setting `OKTETO_ALLOW_AGENT_DESTROY=1` — this is the mechanical form of the skill's "explicit cleanup policy" rule.
-- **Sessions in Okteto projects start informed.** A `SessionStart` hook detects `okteto.yaml` at the repo root and injects a one-line reminder, making skill activation deterministic instead of description-matching luck.
+- **Sessions in Okteto projects start informed.** A `SessionStart` hook detects `okteto.yaml` at the repo root and injects a reminder that this is an Okteto project and that changes should be verified in an Okteto environment — making skill activation deterministic instead of description-matching luck, even when the prompt never mentions Okteto (e.g. "implement this feature").
 
 The hooks fail open: if their input can't be parsed they allow the command, so they can only ever tighten `okteto` invocations, never break your session. They require a POSIX shell (macOS/Linux/WSL).
 
