@@ -105,10 +105,15 @@ Users install with:
 ```
 
 Contents:
-- `skills/okteto/SKILL.md` -- Main skill covering both operating modes
-- `commands/dev-setup.md` -- `/dev-setup` slash command for environment setup
-- `.claude-plugin/plugin.json` -- Plugin metadata
-- `.claude-plugin/marketplace.json` -- Marketplace manifest
+- `.claude-plugin/marketplace.json` -- Marketplace manifest (repo root)
+- `plugins/okteto/.claude-plugin/plugin.json` -- Plugin metadata
+- `plugins/okteto/skills/okteto/SKILL.md` -- Main skill covering both operating modes
+- `plugins/okteto/skills/onboarding/SKILL.md` -- `okteto-onboarding` skill for repos without an `okteto.yaml`
+- `plugins/okteto/commands/dev-setup.md` -- `/dev-setup` slash command for environment setup
+- `plugins/okteto/hooks/` -- Guardrail hooks (destructive-command guard, session-start context)
+- `tests/` -- Eval harness for the plugin (`run-evals.sh`, fixtures, mock model)
+- `examples/` -- Reference CI pipelines (e.g. `ticket-to-pr.yml` autonomous pipeline)
+- `agents/AGENTS.md`, `copilot/copilot-instructions.md` -- Same guidance packaged for other agent harnesses
 
 ## What the Docs Should Cover
 
