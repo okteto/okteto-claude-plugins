@@ -105,13 +105,17 @@ Users install with:
 ```
 
 Contents:
-- `skills/okteto/SKILL.md` -- Main skill covering both operating modes
-- `skills/onboarding/SKILL.md` -- Onboarding skill for repos with no `okteto.yaml` yet
-- `skills/okteto-debugging/SKILL.md` -- Environment triage skill with a playbook per pod failure mode
-- `commands/dev-setup.md` -- `/dev-setup` slash command for environment setup
-- `commands/debug-env.md` -- `/debug-env` slash command for a read-only environment health sweep
-- `.claude-plugin/plugin.json` -- Plugin metadata
-- `.claude-plugin/marketplace.json` -- Marketplace manifest
+- `.claude-plugin/marketplace.json` -- Marketplace manifest (repo root)
+- `plugins/okteto/.claude-plugin/plugin.json` -- Plugin metadata
+- `plugins/okteto/skills/okteto/SKILL.md` -- Main skill covering both operating modes
+- `plugins/okteto/skills/onboarding/SKILL.md` -- Onboarding skill for repos with no `okteto.yaml` yet
+- `plugins/okteto/skills/okteto-debugging/SKILL.md` -- Environment triage skill with a playbook per pod failure mode
+- `plugins/okteto/commands/dev-setup.md` -- `/dev-setup` slash command for environment setup
+- `plugins/okteto/commands/debug-env.md` -- `/debug-env` slash command for a read-only environment health sweep
+- `plugins/okteto/hooks/` -- Guardrail hooks (destructive-command guard, session-start context)
+- `tests/` -- Eval harness for the plugin (`run-evals.sh`, fixtures, mock model)
+- `examples/` -- Reference CI pipelines (e.g. `ticket-to-pr.yml` autonomous pipeline)
+- `agents/AGENTS.md`, `copilot/copilot-instructions.md` -- Same guidance packaged for other agent harnesses
 
 ## What the Docs Should Cover
 
