@@ -15,10 +15,12 @@ license: Apache-2.0
 
 A **Preview Environment** is a live, production-like instance of the application deployed from a **git branch**, usually tied to the lifecycle of a pull request. Okteto deploys it into a dedicated namespace named after the preview and gives you shareable URLs, so reviewers, PMs, and stakeholders can click through real functionality without any local setup.
 
+This skill covers two jobs that meet in one ownership model: **driving previews directly** with the CLI (deploy a branch, hand back the URL) and **authoring the CI automation** that owns previews per-PR. Before touching a preview, know which of the two owns it — that decides who redeploys it, who posts its URL, and who tears it down.
+
 ## Operating rules
 
-1. **Previews deploy from the pushed branch, not your working tree.** `okteto preview deploy` clones the repository at `--branch` and deploys that. Local uncommitted changes never reach a preview — commit and push first.
-2. **Always name the preview explicitly** (e.g. `pr-1234`). Redeploying with the same name updates the same preview; omitting the name generates a random one that CI and cleanup jobs can never find again.
+1. **Previews deploy from the pushed branch, not your working tree.** `okteto preview deploy` clones the repository at `--branch` and deploys that. Local uncommitted changes never reach a preview. Committing and pushing the developer's work is **their** call — in collaborative mode, show what's uncommitted and confirm before committing or pushing anything on their behalf. In autonomous mode, push the task branch you own before deploying.
+2. **Always name the preview explicitly** (e.g. `pr-1234`), and make it a valid name (see [Naming previews](#naming-previews)). Redeploying with the same name updates the same preview; omitting the name generates a random one that CI and cleanup jobs can never find again.
 3. **Use a preview to share, a namespace to work.** Iterating on code belongs in a dev environment (`okteto` skill). A preview is the artifact you hand to reviewers — it has no file sync and no dev containers of yours attached.
 4. **Never destroy a preview you did not create.** Same doctrine as the `okteto` skill's cleanup rules: a preview you created for your own task is yours to destroy; shared/global previews and CI-owned previews are not (see [Cleanup and teardown](#cleanup-and-teardown)).
 5. **In CI, the pipeline owns the lifecycle.** Deploy on PR open/update, destroy on PR close — via `okteto/deploy-preview` and `okteto/destroy-preview` (GitHub) or `okteto preview deploy`/`destroy` jobs (GitLab).
@@ -65,12 +67,20 @@ Key flags (see the [quick reference](#cli-quick-reference) for the full list):
 
 ### Naming previews
 
-The preview name becomes the namespace name, so it must be lowercase alphanumeric and `-`, at most 63 characters. Conventions:
+The preview name becomes the namespace name, so it must be a valid RFC 1123 DNS label: at most 63 characters; lowercase letters, digits, and `-` only; starting **and** ending with a letter or digit (regex `^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`). No uppercase, dots, or underscores, and avoid the reserved `kube-` prefix. Derive a safe slug from a branch the same way the `okteto` skill derives namespace names:
+
+```bash
+slug=$(git branch --show-current | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/^-*//; s/-*$//' | cut -c1-50)
+```
+
+Conventions:
 
 - **PR-keyed** (GitHub): `pr-<number>` — stable across pushes to the PR, easy for the cleanup job to find.
 - **Branch-keyed** (GitLab): `review-<branch-slug>` — e.g. `review-$CI_COMMIT_REF_SLUG`, one preview per branch.
 
-If you omit the name, the CLI generates a random one (and for `--scope personal`, appends your lowercased username). Fine for a quick manual experiment; wrong everywhere else — a redeploy creates a *second* preview instead of updating the first.
+**Getting the PR number:** in CI it's in the event (`${{ github.event.number }}`); on a checked-out branch, `gh pr view --json number --jq .number`. If the PR doesn't exist yet, don't invent a number — use a branch-keyed name, or open the PR first and deploy the preview after.
+
+If you omit the name, the CLI generates a random one. Fine for a quick manual experiment; wrong everywhere else — a redeploy creates a *second* preview instead of updating the first.
 
 ---
 
@@ -188,7 +198,9 @@ Applications can detect they're running in a preview via the `OKTETO_IS_PREVIEW_
 
 ## Cleanup and teardown
 
-`okteto preview destroy <name>` runs any `destroy` commands in the Okteto Manifest, then removes the preview and its namespace. It is destructive — the same authorization doctrine as the `okteto` skill applies:
+`okteto preview destroy <name>` runs any `destroy` commands in the Okteto Manifest, then removes the preview and its namespace. It is destructive — the same authorization doctrine as the `okteto` skill applies.
+
+**Decide who owns teardown when you create the preview.** If the repo has preview workflows, prefer opening the PR and letting CI own the whole lifecycle, teardown included. If you deploy ad hoc for a PR, teardown rides on the PR: destroy the preview yourself when the PR closes if you're still running; otherwise say so where you posted the URL — "this preview is not destroyed automatically; after the PR closes, run `okteto preview destroy <name>`". Sleep and the platform's garbage collection are a resource backstop, not an owner.
 
 | Situation | May the agent destroy it? |
 |---|---|
