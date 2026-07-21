@@ -107,7 +107,7 @@ Users install with:
 Contents:
 - `skills/okteto/SKILL.md` -- Main skill covering both operating modes
 - `skills/onboarding/SKILL.md` -- Onboarding skill for repos with no `okteto.yaml` yet
-- `skills/debugging/SKILL.md` -- Environment triage skill with a playbook per pod failure mode
+- `skills/okteto-debugging/SKILL.md` -- Environment triage skill with a playbook per pod failure mode
 - `commands/dev-setup.md` -- `/dev-setup` slash command for environment setup
 - `commands/debug-env.md` -- `/debug-env` slash command for a read-only environment health sweep
 - `.claude-plugin/plugin.json` -- Plugin metadata
