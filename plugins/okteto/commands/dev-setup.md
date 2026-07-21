@@ -1,3 +1,7 @@
+---
+description: Guided Okteto environment setup — verify prerequisites, deploy all services, show endpoints, and hand off into dev mode
+---
+
 Set up the Okteto development environment for this project. Follow these steps:
 
 1. **Check for the manifest**:

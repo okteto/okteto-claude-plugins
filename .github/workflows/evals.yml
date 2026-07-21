@@ -1,0 +1,40 @@
+name: evals
+
+# Runs the plugin eval harness (tests/run-evals.sh).
+#
+# The hooks and wiring layers are deterministic and free — they run on every
+# pull request. The agent layer calls the live Anthropic API, so it only runs
+# when the ANTHROPIC_API_KEY repository secret is configured (and is skipped
+# with a notice otherwise, e.g. on forks).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hook unit tests (bash + jq)
+        run: tests/run-evals.sh --layer hooks
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Wiring tests (mock model, no API key)
+        run: tests/run-evals.sh --layer wiring
+
+      - name: Live agent evals
+        if: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: tests/run-evals.sh --layer agent
+
+      - name: Live agent evals (skipped)
+        if: ${{ secrets.ANTHROPIC_API_KEY == '' }}
+        run: echo "::notice::ANTHROPIC_API_KEY secret not set — live agent evals skipped. Hooks and wiring layers still ran."

@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Fake `okteto` CLI for the eval harness (tests/run-evals.sh).
+#
+# The fixtures have no live cluster, so evals assert on *attempted* commands
+# rather than on command success. This shim makes that observable:
+#
+#   - every invocation is appended, verbatim, to $OKTETO_SHIM_LOG
+#   - each subcommand returns realistic-enough canned output that an agent
+#     keeps going as if the command had really worked
+#
+# If a session executes `okteto up`, something upstream already failed (the
+# guard hook should have denied it). The shim still logs it — that log line is
+# exactly what the harness assertions look for — and exits non-zero so the
+# agent sees a failure rather than a fake success.
+
+if [ -n "${OKTETO_SHIM_LOG:-}" ]; then
+  echo "okteto $*" >> "$OKTETO_SHIM_LOG"
+fi
+
+case "$1" in
+  version)
+    echo "okteto version 3.14.2"
+    ;;
+  context)
+    printf 'Name: https://okteto.example.com\nNamespace: dev-eval\nUser: eval-agent\n'
+    ;;
+  namespace)
+    case "$2" in
+      create) echo " ✓  Namespace '${3:-}' created" ;;
+      list)   printf 'Namespace  Status\ndev-eval   Active\n' ;;
+      delete) echo " ✓  Namespace '${3:-}' deleted" ;;
+      use)    echo " ✓  Using context https://okteto.example.com @ namespace '${3:-}'" ;;
+      *)      echo "ok" ;;
+    esac
+    ;;
+  deploy)
+    printf ' ✓  Building and deploying...\n ✓  Development environment successfully deployed\n'
+    printf 'Run "okteto endpoints" to see the endpoints available in your development environment\n'
+    ;;
+  endpoints)
+    printf 'api   https://api-dev-eval.okteto.example.com\nweb   https://web-dev-eval.okteto.example.com\n'
+    ;;
+  build)
+    echo " ✓  Image for '${2:-service}' successfully built and pushed"
+    ;;
+  test)
+    printf ' ✓  Running test container %s...\n ✓  Test %s passed\n' "${2:-default}" "${2:-default}"
+    ;;
+  logs)
+    printf '{"level":"info","msg":"server listening","port":8080}\n{"level":"info","msg":"ready"}\n'
+    ;;
+  validate)
+    echo " ✓  The manifest is valid"
+    ;;
+  destroy)
+    echo " ✓  Development environment successfully destroyed"
+    ;;
+  up)
+    # Should be unreachable: the plugin's PreToolUse guard denies `okteto up`.
+    # Reaching this line means the guard did not fire; the harness fails the
+    # scenario off the log entry written above.
+    echo "okteto-shim: FATAL: interactive 'okteto up' was executed by the agent" >&2
+    exit 1
+    ;;
+  down)
+    echo " ✓  Development container deactivated"
+    ;;
+  exec)
+    echo "ok"
+    ;;
+  *)
+    echo "ok"
+    ;;
+esac
+exit 0

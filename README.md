@@ -1,8 +1,11 @@
 # Okteto Plugins for AI Agents
 
+> [!WARNING]
+> **Experimental (alpha).** This is a best-effort experiment maintained by Okteto Product, not a supported product feature — it has not been through Okteto's standard production release process and is not covered by support SLAs. Report problems via [GitHub issues](https://github.com/okteto/okteto-claude-plugins/issues).
+
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
-Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Gemini CLI**, and [many more](https://agentskills.io/clients).
+Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Antigravity CLI (formerly Gemini CLI)**, and [many more](https://agentskills.io/clients).
 
 ## Install
 
@@ -11,7 +14,7 @@ Pick the row for your agent. Every method teaches the agent the same Okteto work
 | Your agent | Install | You get |
 |---|---|---|
 | **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | All three skills **+ the `/dev-setup` command** |
-| **Cursor, Codex, Copilot, Gemini CLI, [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All three skills, installed into your agent |
+| **Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All three skills, installed into your agent |
 | **Anything that reads `AGENTS.md`** | `cp agents/AGENTS.md <your-repo>/AGENTS.md` | One always-on instruction file |
 | **GitHub Copilot (file-based)** | `cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md` | One always-on instruction file |
 
@@ -29,7 +32,17 @@ Run these two commands inside Claude Code:
 - `/plugin marketplace add okteto/okteto-claude-plugins` — tells Claude Code to trust this GitHub repo as a source of plugins. One-time registration.
 - `/plugin install okteto` — installs the `okteto` plugin, wiring up its skills **and** the `/dev-setup` slash command.
 
-After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available whenever you want a guided environment bring-up. This is the only method that includes the `/dev-setup` command.
+After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available whenever you want a guided environment bring-up. This is the only method that includes the `/dev-setup` command and the guardrail hooks below.
+
+#### Guardrail hooks (Claude Code only)
+
+The plugin ships hooks that enforce the skill's two hardest rules mechanically, so a session can't wedge even if the model forgets them:
+
+- **`okteto up` is always denied** with a message telling the agent to hand the command to you — it's interactive and would hang the agent's shell.
+- **`okteto destroy` and `okteto namespace delete` require confirmation.** You approve them per-invocation. Pipelines that own their environments (e.g. per-PR preview environments) can pre-authorize teardown by setting `OKTETO_ALLOW_AGENT_DESTROY=1` — this is the mechanical form of the skill's "explicit cleanup policy" rule.
+- **Sessions in Okteto projects start informed.** A `SessionStart` hook detects `okteto.yaml` at the repo root and injects a reminder that this is an Okteto project and that changes should be verified in an Okteto environment — making skill activation deterministic instead of description-matching luck, even when the prompt never mentions Okteto (e.g. "implement this feature").
+
+The hooks fail open: if their input can't be parsed they allow the command, so they can only ever tighten `okteto` invocations, never break your session. They require a POSIX shell (macOS/Linux/WSL).
 
 ### Cursor, Codex, and other skills-compatible agents (`npx skills`)
 
@@ -39,7 +52,7 @@ The [`skills`](https://github.com/vercel-labs/skills) CLI installs the skills in
 npx skills add okteto/okteto-claude-plugins
 ```
 
-It auto-detects your agent (Cursor, Codex, Copilot, Gemini CLI, and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
+It auto-detects your agent (Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
 
 - `--skill '*' -y` — install all skills into the detected agent without prompting
 - `--copy` — copy the skill files in instead of symlinking them
@@ -65,7 +78,8 @@ Both files carry the same tool-neutral Okteto guidance: discovering services fro
 - **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
 - **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
 - **`okteto-preview` skill** -- Preview environments for branches and pull requests: deploying with `okteto preview deploy`, capturing endpoints and posting the URL back to the PR or thread, mapping the flow to CI (`okteto/deploy-preview` GitHub Action, GitLab CI/CD), and teardown rules
-- **`/dev-setup` command** -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+- **`/dev-setup` command** (Claude Code only) -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+- **Guardrail hooks** (Claude Code only) -- Deterministically block `okteto up` (it would hang the agent), require confirmation for `okteto destroy`/`okteto namespace delete`, and announce Okteto projects at session start
 
 ## Usage
 
@@ -133,11 +147,54 @@ For CI/CD or ticket-driven workflows where no developer is present, the skill te
 4. Validate with `okteto test` and endpoint smoke tests
 5. Report results back to the ticket/PR
 
-## Testing the plugin locally
+A complete, copy-pasteable GitHub Actions implementation of this flow — issue labeled `agent` → isolated namespace → implement → test → PR with the preview URL → teardown on PR close — lives at [examples/ticket-to-pr.yml](examples/ticket-to-pr.yml), with a full walkthrough (required secrets, teardown policy, security notes) in [examples/README.md](examples/README.md).
+
+## Testing the plugin
+
+For interactive poking, load the plugin into a session:
 
 ```
 claude --plugin-dir /path/to/okteto-claude-plugins/plugins/okteto
 ```
+
+For repeatable checks there is a scripted eval harness. It runs headless
+Claude Code sessions against the repos in `tests/fixtures/` with the plugin
+loaded, and asserts on the stream-json transcript (tool calls, hook denials)
+and on a fake `okteto` CLI (`tests/bin/okteto`) that logs every invocation and
+returns canned output — no live cluster needed.
+
+```
+tests/run-evals.sh                 # everything (agent layer skips without auth)
+tests/run-evals.sh --layer hooks   # hook-script unit tests: bash + jq only
+tests/run-evals.sh --layer wiring  # in-harness guard checks: no API key needed
+tests/run-evals.sh --layer agent   # live model evals: needs claude auth
+```
+
+The three layers, cheapest first:
+
+| Layer | What it proves | Needs |
+|---|---|---|
+| `hooks` | `guard-okteto.sh` denies `okteto up`, escalates `okteto destroy`/`namespace delete` to *ask*, honors `OKTETO_ALLOW_AGENT_DESTROY=1`, fails open on bad input; `session-start.sh` announces the manifest | bash, jq |
+| `wiring` | The same guarantees hold *inside a real headless session*: a mock Messages API (`tests/mock-model/server.py`) force-feeds scripted tool calls, so the PreToolUse deny, the headless ask→block behavior, and the shim round-trip are verified deterministically | + claude, python3 |
+| `agent` | A live model given realistic prompts follows the skills: never executes `okteto up`, refuses to onboard over an existing `okteto.yaml`, isolates git worktrees with `okteto namespace create` + `-n` flags, and never destroys without authorization | + claude auth |
+
+For the agent layer, set `ANTHROPIC_API_KEY` or be logged in (`claude login`);
+the harness probes auth first and skips with a notice if neither works.
+`CLAUDE_EVAL_MODEL` overrides the model (default `claude-sonnet-5`), and
+`--scenario <name>` runs a single agent scenario. Transcripts, shim logs, and
+mock-server logs land in a temp dir printed at the end of every run.
+
+The agent layer judges *behavior*: a scenario can legitimately be stopped at
+the skill layer (the model never tries the forbidden command) or at the hook
+layer (the guard denies it). Both count as the guardrail holding; the output
+notes which layer fired. Live-model runs are inherently somewhat
+nondeterministic — if a behavioral scenario fails, read the transcript in the
+artifacts dir before blaming the plugin.
+
+In CI, `.github/workflows/evals.yml` runs the `hooks` and `wiring` layers on
+every pull request (they need no secrets) and the `agent` layer only when the
+`ANTHROPIC_API_KEY` repository secret is configured, skipping it gracefully
+otherwise.
 
 ## Requirements
 

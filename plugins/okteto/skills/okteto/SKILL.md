@@ -1,10 +1,12 @@
 ---
 name: okteto
 description: |
-  Okteto development environment agent skill. Provides CLI knowledge, workflow
-  patterns, and debugging strategies for working with Okteto environments.
-  Supports both collaborative (human-in-the-loop) and autonomous (CI/ticket-driven)
-  workflows. Use when a project has an okteto.yaml or the user mentions Okteto.
+  Use when a project contains okteto.yaml or okteto.yml, or when the user
+  mentions Okteto, dev environments, or an okteto command. Also use before
+  running kubectl, helm, or docker build in a repo that has an Okteto
+  manifest; when okteto up hangs or seems stuck; when parallel git worktrees
+  collide over the same environment; or when deciding whether okteto destroy
+  or okteto namespace delete is safe to run.
 license: Apache-2.0
 ---
 
