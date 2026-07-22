@@ -38,6 +38,8 @@ Examples:
 
 **Do not use `kubectl exec` or try to open a shell directly into a pod.** `okteto exec` is the correct way to run commands in the development container — it handles cluster authentication, namespace selection, and dev container routing automatically. Direct `kubectl exec` calls will not reach the right container and will confuse the session.
 
+**Read-only `kubectl` and `helm` are fine for diagnostics.** Commands like `kubectl get pods`, `kubectl describe pod`, `kubectl logs <pod> --previous`, `kubectl get events`, and `helm status` only read cluster state and are the right tools for debugging unhealthy pods. The rule is about mutations: never change the cluster with `kubectl apply`/`edit`/`delete` or `helm install`/`upgrade` — all changes go through `okteto deploy`.
+
 ## The `okteto up` rule
 
 `okteto up <service>` is **interactive** — it starts a live shell inside the dev container with automatic file sync. You must never run it yourself (not in the terminal, not in the background). It will hang waiting for input.
@@ -111,6 +113,7 @@ Never deploy a modified `okteto.yaml` without validating first — a bad manifes
 | Situation | What to do |
 |-----------|------------|
 | Service not responding | `okteto logs <service>` |
+| Pod crashing or stuck (`CrashLoopBackOff`, `OOMKilled`, `Pending`) | `kubectl get pods`, then `kubectl describe pod <pod>` and `kubectl logs <pod> --previous` — read-only kubectl is fine for diagnostics |
 | Need to inspect state | `okteto exec -- <diagnostic command>` |
 | Tests failing | Read test output, fix code, re-run with `okteto exec` |
 | Environment looks stale | `okteto deploy --wait` to redeploy |
@@ -149,7 +152,7 @@ Do not run `okteto destroy` unless there is an explicit cleanup policy or instru
 | `okteto context show` | Agent | Verify cluster connection and active namespace |
 | `okteto validate` | Agent | Validate okteto.yaml syntax before deploying |
 | `okteto namespace create <ns>` | Agent | Create an isolated namespace for a worktree |
-| `okteto destroy` | Developer only | Tear down all resources — requires explicit instruction |
+| `okteto destroy` | Developer; agent only with an explicit cleanup policy | Tear down all resources |
 
 Every command above accepts `-n <ns>` to target a specific namespace without changing the active context — use it to isolate a worktree (see above).
 
@@ -158,7 +161,7 @@ Every command above accepts `-n <ns>` to target a specific namespace without cha
 - **Running `okteto up` yourself**: It is interactive and will hang. The developer must run it in their terminal.
 - **Using `kubectl exec` or direct pod shells**: These bypass Okteto's dev container routing. Use `okteto exec -- <command>` instead.
 - **Building Docker images with `docker build`**: Use `okteto build <service>` to use the Okteto Build Service.
-- **Using `kubectl apply` or `helm upgrade` directly**: Use `okteto deploy` so Okteto can track resources.
+- **Mutating the cluster with `kubectl` or `helm`**: `kubectl apply`/`edit`/`delete` and `helm install`/`upgrade` bypass Okteto's resource tracking. Make changes through `okteto deploy`. Read-only kubectl/helm for diagnostics is fine.
 - **Hardcoding service names**: Always read `okteto.yaml` to discover them.
-- **Running `okteto destroy` without being asked**: It tears down everything. Only run it if the developer explicitly asks.
+- **Running `okteto destroy` without authorization**: It tears down everything. Only run it if the developer explicitly asks or an explicit cleanup policy covers it (see Autonomous mode).
 - **Sharing one namespace across worktrees**: Worktrees of the same repo share `okteto.yaml`, so they collide in a shared namespace. Give each its own namespace and pass `-n <ns>` on every command. Don't use `okteto namespace use` for this — it races across concurrent sessions.

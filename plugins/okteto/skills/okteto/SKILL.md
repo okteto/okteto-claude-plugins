@@ -23,7 +23,7 @@ These five rules prevent the most common failures. The rest of this skill elabor
 
 1. **Read `okteto.yaml` first.** Derive services, builds, and tests from it -- never hardcode names.
 2. **Never run `okteto up`.** It is interactive and hangs. The user runs it in collaborative mode; it has no place in autonomous mode.
-3. **Build and deploy through Okteto.** Use `okteto build` and `okteto deploy` -- never local `docker build` or raw `kubectl`/`helm`.
+3. **Mutate the cluster only through Okteto.** Use `okteto build` and `okteto deploy` -- never local `docker build` or `kubectl apply`/`helm upgrade`. Read-only `kubectl`/`helm` (`get`, `describe`, `logs`, `events`, `helm status`) is fine for diagnostics.
 4. **One worktree = one namespace.** When working in a git worktree, create a dedicated namespace and pass `-n <ns>` on every command (see [Worktree isolation](#worktree-isolation)).
 5. **Never destroy without authorization.** `okteto destroy` and `okteto namespace delete` require explicit policy or instruction (see [Cleanup and teardown](#cleanup-and-teardown)).
 
@@ -95,6 +95,8 @@ You are facilitating their workflow, not trying to observe their terminal sessio
 | User asks "why is this failing?" | Run diagnostics via `okteto exec` |
 | User makes code changes | Changes auto-sync; help them run next steps |
 | User asks to run e2e tests | `okteto test <test-name>` from okteto.yaml |
+
+**REQUIRED SUB-SKILL:** For a broken or unhealthy environment -- CrashLoopBackOff, OOMKilled, ImagePullBackOff, pods stuck in Pending, deploy failures, or file sync not working -- use the okteto-debugging skill. It has the full triage algorithm and a playbook per failure mode.
 
 ---
 
@@ -303,7 +305,7 @@ Look at the `dev` section of `okteto.yaml` for each service. The `command` field
 - **Running `okteto up` as the agent in collaborative mode**: It is interactive. Always tell the user to run it.
 - **Forgetting to deploy first**: Run `okteto deploy` before any validation or testing.
 - **Not specifying the service**: With multiple services, always specify which one.
-- **Using kubectl/helm directly**: Always use `okteto deploy` so Okteto can track resources.
+- **Using kubectl/helm to change the cluster**: Mutations (`kubectl apply`, `kubectl delete`, `helm upgrade`, ...) must go through `okteto deploy` so Okteto can track resources. Read-only kubectl/helm for diagnostics is fine.
 - **Building Docker images locally**: Use `okteto build` to leverage the Okteto Build Service.
 - **Hardcoding service names**: Always read `okteto.yaml` to discover services.
 - **Destroying without authorization**: In autonomous mode, do not run `okteto destroy` unless there is an explicit cleanup policy or instruction.

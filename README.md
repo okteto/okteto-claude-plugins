@@ -13,8 +13,8 @@ Pick the row for your agent. Every method teaches the agent the same Okteto work
 
 | Your agent | Install | You get |
 |---|---|---|
-| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | All three skills **+ the `/dev-setup` command** |
-| **Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All three skills, installed into your agent |
+| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | All four skills **+ the `/dev-setup` and `/debug-env` commands** |
+| **Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All four skills, installed into your agent |
 | **Anything that reads `AGENTS.md`** | `cp agents/AGENTS.md <your-repo>/AGENTS.md` | One always-on instruction file |
 | **GitHub Copilot (file-based)** | `cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md` | One always-on instruction file |
 
@@ -30,9 +30,9 @@ Run these two commands inside Claude Code:
 ```
 
 - `/plugin marketplace add okteto/okteto-claude-plugins` — tells Claude Code to trust this GitHub repo as a source of plugins. One-time registration.
-- `/plugin install okteto` — installs the `okteto` plugin, wiring up its skills **and** the `/dev-setup` slash command.
+- `/plugin install okteto` — installs the `okteto` plugin, wiring up its skills **and** the `/dev-setup` and `/debug-env` slash commands.
 
-After install, open any project with an `okteto.yaml` and ask Claude for help. The skill activates automatically; `/dev-setup` is available whenever you want a guided environment bring-up. This is the only method that includes the `/dev-setup` command and the guardrail hooks below.
+After install, open any project with an `okteto.yaml` and ask Claude for help. The skills activate automatically; `/dev-setup` is available whenever you want a guided environment bring-up, and `/debug-env` runs a read-only health sweep of the environment. This is the only method that includes the slash commands and the guardrail hooks below.
 
 #### Guardrail hooks (Claude Code only)
 
@@ -60,7 +60,7 @@ It auto-detects your agent (Cursor, Codex, Copilot, Antigravity CLI (formerly Ge
 
 Avoid `--all` — it installs into *every* known agent's directory, not just yours.
 
-This carries the **skills only** — the `/dev-setup` slash command is exclusive to the Claude Code plugin above.
+This carries the **skills only** — the `/dev-setup` and `/debug-env` slash commands are exclusive to the Claude Code plugin above.
 
 ### File-based fallback (`AGENTS.md` / Copilot)
 
@@ -75,10 +75,12 @@ Both files carry the same tool-neutral Okteto guidance: discovering services fro
 
 ## What's included
 
-- **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, debugging strategies
+- **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, worktree isolation, cleanup rules
 - **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
+- **`okteto-debugging` skill** -- Triages broken environments: a triage algorithm plus a playbook per failure mode (CrashLoopBackOff, OOMKilled, ImagePullBackOff, Pending, runtime errors, deploy failures, sync issues)
 - **`okteto-preview` skill** -- Preview environments for branches and pull requests: deploying with `okteto preview deploy`, capturing endpoints and posting the URL back to the PR or thread, mapping the flow to CI (`okteto/deploy-preview` GitHub Action, GitLab CI/CD), and teardown rules
 - **`/dev-setup` command** (Claude Code only) -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
+- **`/debug-env` command** (Claude Code only) -- Read-only health sweep: triages every unhealthy service (or one, with `/debug-env <service>`) and emits a structured root cause + fix per service
 - **Guardrail hooks** (Claude Code only) -- Deterministically block `okteto up` (it would hang the agent), require confirmation for `okteto destroy`/`okteto preview destroy`/`okteto namespace delete`, and announce Okteto projects at session start
 
 ## Usage
@@ -104,6 +106,16 @@ The `okteto-onboarding` skill activates when a repo has no `okteto.yaml` and the
 - Hands off to the `okteto` skill once the manifest exists
 
 Once the `okteto.yaml` is in place, normal `okteto` skill workflows (collaborative mode, autonomous mode, `/dev-setup`) take over.
+
+### `okteto-debugging` skill (automatic)
+
+The `okteto-debugging` skill activates when a service or environment is unhealthy — "my service keeps crashing", "pods are stuck in Pending", or pasted output showing `CrashLoopBackOff`. It:
+
+- Snapshots pod states with `kubectl get pods` and applies a playbook per failure mode (crash loops, OOM kills, image pull failures, unschedulable pods, runtime errors, deploy failures, sync issues)
+- Gathers evidence with read-only kubectl (`describe`, `logs --previous`, `get events`) — it never mutates the cluster
+- Emits a structured diagnosis per unhealthy service: root cause, evidence, exact fix, and a confidence rating
+
+In Claude Code, `/debug-env` (optionally scoped to one service: `/debug-env catalog`) runs the same triage as a deliberate full sweep.
 
 ### `okteto-preview` skill (automatic)
 
