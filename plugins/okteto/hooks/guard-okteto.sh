@@ -6,10 +6,11 @@
 #
 #   1. `okteto up` is interactive and hangs a non-interactive shell. Deny it
 #      and redirect the agent to hand the command to the developer.
-#   2. `okteto destroy` / `okteto namespace delete` are destructive. Require
-#      user confirmation, unless the environment pre-authorizes teardown by
-#      setting OKTETO_ALLOW_AGENT_DESTROY=1|true (the "explicit cleanup
-#      policy" case from the skill, e.g. a pipeline-owned preview env).
+#   2. `okteto destroy` / `okteto preview destroy` / `okteto namespace delete`
+#      are destructive. Require user confirmation, unless the environment
+#      pre-authorizes teardown by setting OKTETO_ALLOW_AGENT_DESTROY=1|true
+#      (the "explicit cleanup policy" case from the skills, e.g. a
+#      pipeline-owned preview env).
 #
 # Fails open: on any parse problem the command is allowed, so this hook can
 # never break a session. It only ever tightens `okteto` invocations.
@@ -40,7 +41,7 @@ if printf '%s' "$cmd" | grep -qE 'okteto[[:space:]]+up([[:space:]]|$)'; then
   emit deny "okteto up is interactive and will hang the agent. Tell the developer to run it in their terminal instead: okteto up <service> (append -n <ns> when using an isolated worktree namespace). In autonomous mode use okteto deploy / okteto build / okteto test."
 fi
 
-if printf '%s' "$cmd" | grep -qE 'okteto[[:space:]]+(destroy([[:space:]]|$)|namespace[[:space:]]+delete)'; then
+if printf '%s' "$cmd" | grep -qE 'okteto[[:space:]]+((preview[[:space:]]+)?destroy([[:space:]]|$)|namespace[[:space:]]+delete)'; then
   case "$OKTETO_ALLOW_AGENT_DESTROY" in
     1|true) exit 0 ;;
   esac

@@ -13,8 +13,8 @@ Pick the row for your agent. Every method teaches the agent the same Okteto work
 
 | Your agent | Install | You get |
 |---|---|---|
-| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | All three skills **+ the `/dev-setup` and `/debug-env` commands** |
-| **Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All three skills, installed into your agent |
+| **Claude Code** | `/plugin marketplace add okteto/okteto-claude-plugins` → `/plugin install okteto` | All four skills **+ the `/dev-setup` and `/debug-env` commands** |
+| **Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), [& more](https://agentskills.io/clients)** | `npx skills add okteto/okteto-claude-plugins` | All four skills, installed into your agent |
 | **Anything that reads `AGENTS.md`** | `cp agents/AGENTS.md <your-repo>/AGENTS.md` | One always-on instruction file |
 | **GitHub Copilot (file-based)** | `cp copilot/copilot-instructions.md <your-repo>/.github/copilot-instructions.md` | One always-on instruction file |
 
@@ -39,7 +39,7 @@ After install, open any project with an `okteto.yaml` and ask Claude for help. T
 The plugin ships hooks that enforce the skill's two hardest rules mechanically, so a session can't wedge even if the model forgets them:
 
 - **`okteto up` is always denied** with a message telling the agent to hand the command to you — it's interactive and would hang the agent's shell.
-- **`okteto destroy` and `okteto namespace delete` require confirmation.** You approve them per-invocation. Pipelines that own their environments (e.g. per-PR preview environments) can pre-authorize teardown by setting `OKTETO_ALLOW_AGENT_DESTROY=1` — this is the mechanical form of the skill's "explicit cleanup policy" rule.
+- **`okteto destroy`, `okteto preview destroy`, and `okteto namespace delete` require confirmation.** You approve them per-invocation. Pipelines that own their environments (e.g. per-PR preview environments) can pre-authorize teardown by setting `OKTETO_ALLOW_AGENT_DESTROY=1` — this is the mechanical form of the skill's "explicit cleanup policy" rule.
 - **Sessions in Okteto projects start informed.** A `SessionStart` hook detects `okteto.yaml` at the repo root and injects a reminder that this is an Okteto project and that changes should be verified in an Okteto environment — making skill activation deterministic instead of description-matching luck, even when the prompt never mentions Okteto (e.g. "implement this feature").
 
 The hooks fail open: if their input can't be parsed they allow the command, so they can only ever tighten `okteto` invocations, never break your session. They require a POSIX shell (macOS/Linux/WSL).
@@ -54,7 +54,7 @@ npx skills add okteto/okteto-claude-plugins
 
 It auto-detects your agent (Cursor, Codex, Copilot, Antigravity CLI (formerly Gemini CLI), and [others](https://agentskills.io/clients)) and prompts you to pick skills. Useful flags:
 
-- `--skill '*' -y` — install all three skills into the detected agent without prompting
+- `--skill '*' -y` — install all skills into the detected agent without prompting
 - `--copy` — copy the skill files in instead of symlinking them
 - `npx skills use okteto/okteto-claude-plugins@okteto` — print a skill as a one-off prompt without installing it
 
@@ -78,9 +78,10 @@ Both files carry the same tool-neutral Okteto guidance: discovering services fro
 - **`okteto` skill** -- CLI knowledge, collaborative and autonomous workflow patterns, worktree isolation, cleanup rules
 - **`okteto-onboarding` skill** -- Bootstraps projects that have no `okteto.yaml` yet: discovers services, drafts a manifest, validates it, then hands off to the `okteto` skill
 - **`okteto-debugging` skill** -- Triages broken environments: a triage algorithm plus a playbook per failure mode (CrashLoopBackOff, OOMKilled, ImagePullBackOff, Pending, runtime errors, deploy failures, sync issues)
+- **`okteto-preview` skill** -- Preview environments for branches and pull requests: deploying with `okteto preview deploy`, capturing endpoints and posting the URL back to the PR or thread, mapping the flow to CI (`okteto/deploy-preview` GitHub Action, GitLab CI/CD), and teardown rules
 - **`/dev-setup` command** (Claude Code only) -- One-command environment setup: checks prerequisites, deploys services, shows endpoints, guides the developer into a dev container
 - **`/debug-env` command** (Claude Code only) -- Read-only health sweep: triages every unhealthy service (or one, with `/debug-env <service>`) and emits a structured root cause + fix per service
-- **Guardrail hooks** (Claude Code only) -- Deterministically block `okteto up` (it would hang the agent), require confirmation for `okteto destroy`/`okteto namespace delete`, and announce Okteto projects at session start
+- **Guardrail hooks** (Claude Code only) -- Deterministically block `okteto up` (it would hang the agent), require confirmation for `okteto destroy`/`okteto preview destroy`/`okteto namespace delete`, and announce Okteto projects at session start
 
 ## Usage
 
@@ -115,6 +116,16 @@ The `okteto-debugging` skill activates when a service or environment is unhealth
 - Emits a structured diagnosis per unhealthy service: root cause, evidence, exact fix, and a confidence rating
 
 In Claude Code, `/debug-env` (optionally scoped to one service: `/debug-env catalog`) runs the same triage as a deliberate full sweep.
+
+### `okteto-preview` skill (automatic)
+
+The `okteto-preview` skill activates when someone wants a live, shareable environment for a branch or pull request. It teaches the agent:
+
+- When a task needs a **preview environment** (a shareable URL for reviewers, deployed from a pushed branch) vs. a **namespace dev environment** (the agent's own workbench, deployed from the working tree)
+- How to deploy a preview for a branch or PR with `okteto preview deploy`, including scope (`personal` vs `global`), variables, and naming conventions that keep redeploys and cleanup idempotent
+- How to capture endpoints (`okteto preview endpoints -o md`) and post the preview URL back to the PR (`gh pr comment`) or thread
+- How the same flow runs in CI with the `okteto/deploy-preview` and `okteto/destroy-preview` GitHub Actions (or GitLab CI/CD jobs)
+- Teardown rules matching the `okteto` skill's cleanup doctrine: previews the agent created are its to destroy; CI-owned and shared/global previews are not
 
 ### Cleanup and teardown
 
