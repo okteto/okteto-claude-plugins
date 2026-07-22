@@ -176,6 +176,10 @@ layer_hooks() {
   expect_guard ask   "okteto namespace delete feat-x"
   expect_guard allow-by-default "okteto namespace create feat-x"
   expect_guard allow-by-default "okteto destroy --help"
+  expect_guard ask   "okteto preview destroy pr-123"
+  expect_guard allow-by-default "okteto preview deploy pr-123 --wait"
+  expect_guard allow-by-default "okteto preview endpoints pr-123 -o md"
+  expect_guard allow-by-default "okteto preview destroy --help"
 
   # OKTETO_ALLOW_AGENT_DESTROY pre-authorizes teardown
   local got
