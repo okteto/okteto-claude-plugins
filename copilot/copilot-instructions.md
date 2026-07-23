@@ -119,6 +119,18 @@ Never deploy a modified `okteto.yaml` without validating first — a bad manifes
 | Environment looks stale | `okteto deploy --wait` to redeploy |
 | Persistent unexplained failure | `okteto doctor` — generates a diagnostic bundle to share with Okteto support |
 
+## Writing an efficient okteto.yaml
+
+When you create or edit `okteto.yaml`, follow Okteto's manifest performance best practices. Slow environments almost always come from unpinned images, a bloated build or sync context, or dependencies re-fetched on every start:
+
+- **Pin every image** — a version tag or `@sha256`, never `:latest`. Wire dev images to builds with `${OKTETO_BUILD_<NAME>_IMAGE}` (uppercase the build name, `-` becomes `_`).
+- **Scope the context.** Ship a `.dockerignore` (exclude `*`, then `!`-include only build inputs) and a `.stignore` (sync active source only — never artifacts, dependency directories, or `.git`). Add a `.oktetoignore` (gitignore syntax, `[deploy]`/`[test]` sections) when the deploy or test context is large.
+- **Persist dependencies and caches** in `dev.<svc>.volumes` and `test.<name>.caches`: Node `node_modules`, Go `/go/pkg/mod` and `/root/.cache/go-build`, Maven `/root/.m2`, Python pip cache and virtualenv.
+- **Set `resources.requests` and `resources.limits`** on every dev container — both are unset by default.
+- **Get port direction right:** `forward` is `localPort:remotePort`; `reverse` is `remotePort:localPort`.
+- **Order Dockerfiles by change frequency** (base and system packages, then dependency install, then source) and never `COPY . .`; use BuildKit cache mounts for dependency and build caches.
+- **Validate** with `okteto validate` before deploying.
+
 ## Autonomous mode
 
 When operating without a developer in the loop (e.g. triggered by a ticket or PR), own the full lifecycle. Do not use `okteto up` — it requires a human. Use `okteto deploy` for environments and `okteto test` for validation.
