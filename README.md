@@ -1,8 +1,5 @@
 # Okteto Plugins for AI Agents
 
-> [!WARNING]
-> **Experimental (alpha).** This is a best-effort experiment maintained by Okteto Product, not a supported product feature — it has not been through Okteto's standard production release process and is not covered by support SLAs. Report problems via [GitHub issues](https://github.com/okteto/okteto-agent-skills/issues).
-
 Teaches AI agents how to work with [Okteto](https://www.okteto.com) development environments. Works with any project that has an `okteto.yaml`.
 
 Built on the open [Agent Skills](https://agentskills.io) format, so the same skills run in **Claude Code**, **Cursor**, **OpenAI Codex**, **GitHub Copilot**, **Antigravity CLI (formerly Gemini CLI)**, and [many more](https://agentskills.io/clients).
@@ -213,3 +210,7 @@ otherwise.
 - [Okteto CLI](https://www.okteto.com/docs/get-started/install-okteto-cli/) installed and configured
 - An `okteto.yaml` in your project root (use the `okteto-onboarding` skill if you don't have one yet)
 - A skills-compatible agent — see the [Install](#install) table
+
+---
+
+_Open-source (Apache-2.0), separate from the Okteto product, not covered by support SLAs._
